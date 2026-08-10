@@ -1,401 +1,509 @@
 --[[
-    ZYRO HUB - Murders vs Sheriff Script
-    Créditos: gomes.wqq
-    WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+    ╔═══════════════════════════════════════════════════════════════════════════╗
+    ║                           ZYRO HUB - V2.0                                 ║
+    ║                    Murders vs Sheriff Ultimate Script                     ║
+    ║                         Créditos: gomes.wqq                               ║
+    ╚═══════════════════════════════════════════════════════════════════════════╝
+    
+    WARNING: Use at your own risk!
 ]]
 
-local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
+-- ==================== SERVICES ====================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+local Camera = workspace.CurrentCamera
+
+-- ==================== CORE VARIABLES ====================
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local Humanoid = Character:WaitForChild("Humanoid")
 local RootPart = Character:WaitForChild("HumanoidRootPart")
-local Camera = workspace.CurrentCamera
 
--- Variáveis de controle
-local killAllActive = false
-local killSherifActive = false
-local aimbotActive = false
-local autoCollectActive = false
-local espMurdersActive = false
-local espSherifActive = false
-local pouInfinitoActive = false
-local autoFarmActive = false
-local playerSpeed = 16
-local jumpPower = 50
-local aimbotFOV = 300
+local ScriptEnabled = true
+local OriginalWalkSpeed = 16
+local OriginalJumpPower = 50
 
-local originalPosition = nil
+-- ==================== FEATURE FLAGS ====================
+local Features = {
+    KillAll = false,
+    KillSheriff = false,
+    Aimbot = false,
+    AutoCollectGun = false,
+    ESPMurders = false,
+    ESPSheriff = false,
+    PouInfinito = false,
+    AutoFarm = false,
+    AntiAFK = false,
+    SpeedBoost = 16,
+    JumpPower = 50,
+    AimbotFOV = 300,
+    OriginalPos = nil,
+    SherifDead = false,
+}
 
--- Tema Dark
-WindUI:AddTheme({
-    Name = "Dark",
-    Accent = Color3.fromHex("#18181b"),
-    Background = Color3.fromHex("#101010"),
-    Outline = Color3.fromHex("#FFFFFF"),
-    Text = Color3.fromHex("#FFFFFF"),
-    Placeholder = Color3.fromHex("#7a7a7a"),
-    Button = Color3.fromHex("#52525b"),
-    Icon = Color3.fromHex("#a1a1aa"),
+-- ==================== SIMPLE UI LIBRARY ====================
+local UILib = {}
+UILib.Windows = {}
+UILib.Connections = {}
+
+function UILib:CreateWindow(Config)
+    Config = Config or {}
+    local WindowName = Config.Title or "Window"
+    local Author = Config.Author or "Unknown"
+    
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "ZyroHubGui"
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.ZIndex = 999
+    ScreenGui.Parent = game.CoreGui
+    
+    -- Main Container
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Name = "MainFrame"
+    MainFrame.Size = UDim2.new(0, 700, 0, 550)
+    MainFrame.Position = UDim2.new(0.5, -350, 0.5, -275)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Draggable = true
+    MainFrame.Active = true
+    MainFrame.Parent = ScreenGui
+    
+    -- Corner Radius
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 12)
+    Corner.Parent = MainFrame
+    
+    -- Stroke
+    local Stroke = Instance.new("UIStroke")
+    Stroke.Color = Color3.fromRGB(100, 100, 150)
+    Stroke.Thickness = 2
+    Stroke.Parent = MainFrame
+    
+    -- TopBar
+    local TopBar = Instance.new("Frame")
+    TopBar.Name = "TopBar"
+    TopBar.Size = UDim2.new(1, 0, 0, 50)
+    TopBar.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+    TopBar.BorderSizePixel = 0
+    TopBar.Parent = MainFrame
+    
+    local TopCorner = Instance.new("UICorner")
+    TopCorner.CornerRadius = UDim.new(0, 12)
+    TopCorner.Parent = TopBar
+    
+    -- Title
+    local Title = Instance.new("TextLabel")
+    Title.Name = "Title"
+    Title.Size = UDim2.new(0.7, 0, 1, 0)
+    Title.Position = UDim2.new(0, 15, 0, 0)
+    Title.BackgroundTransparency = 1
+    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Title.TextScaled = true
+    Title.Font = Enum.Font.GothamBold
+    Title.Text = "⚡ ZYRO HUB ⚡"
+    Title.Parent = TopBar
+    
+    -- Subtitle
+    local Subtitle = Instance.new("TextLabel")
+    Subtitle.Name = "Subtitle"
+    Subtitle.Size = UDim2.new(1, -30, 0, 20)
+    Subtitle.Position = UDim2.new(0, 15, 0, 28)
+    Subtitle.BackgroundTransparency = 1
+    Subtitle.TextColor3 = Color3.fromRGB(150, 150, 200)
+    Subtitle.TextScaled = true
+    Subtitle.Font = Enum.Font.Gotham
+    Subtitle.Text = "by " .. Author .. " | Murders vs Sheriff"
+    Subtitle.Parent = TopBar
+    
+    -- Close Button
+    local CloseBtn = Instance.new("TextButton")
+    CloseBtn.Name = "CloseBtn"
+    CloseBtn.Size = UDim2.new(0, 40, 0, 40)
+    CloseBtn.Position = UDim2.new(1, -45, 0, 5)
+    CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CloseBtn.TextScaled = true
+    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.Text = "X"
+    CloseBtn.Parent = TopBar
+    CloseBtn.BorderSizePixel = 0
+    
+    local CloseBtnCorner = Instance.new("UICorner")
+    CloseBtnCorner.CornerRadius = UDim.new(0, 8)
+    CloseBtnCorner.Parent = CloseBtn
+    
+    CloseBtn.MouseButton1Click:Connect(function()
+        MainFrame.Visible = not MainFrame.Visible
+    end)
+    
+    -- Tabs Container
+    local TabsContainer = Instance.new("Frame")
+    TabsContainer.Name = "TabsContainer"
+    TabsContainer.Size = UDim2.new(0.25, 0, 1, -50)
+    TabsContainer.Position = UDim2.new(0, 0, 0, 50)
+    TabsContainer.BackgroundColor3 = Color3.fromRGB(18, 18, 28)
+    TabsContainer.BorderSizePixel = 0
+    TabsContainer.Parent = MainFrame
+    
+    -- Content Container
+    local ContentContainer = Instance.new("Frame")
+    ContentContainer.Name = "ContentContainer"
+    ContentContainer.Size = UDim2.new(0.75, 0, 1, -50)
+    ContentContainer.Position = UDim2.new(0.25, 0, 0, 50)
+    ContentContainer.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    ContentContainer.BorderSizePixel = 0
+    ContentContainer.Parent = MainFrame
+    
+    -- Scroll View for Tabs
+    local TabsScroll = Instance.new("ScrollingFrame")
+    TabsScroll.Name = "TabsScroll"
+    TabsScroll.Size = UDim2.new(1, 0, 1, 0)
+    TabsScroll.BackgroundTransparency = 1
+    TabsScroll.ScrollBarThickness = 6
+    TabsScroll.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 150)
+    TabsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    TabsScroll.Parent = TabsContainer
+    
+    local TabsListLayout = Instance.new("UIListLayout")
+    TabsListLayout.Padding = UDim.new(0, 5)
+    TabsListLayout.FillDirection = Enum.FillDirection.Vertical
+    TabsListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    TabsListLayout.Parent = TabsScroll
+    
+    -- Scroll View for Content
+    local ContentScroll = Instance.new("ScrollingFrame")
+    ContentScroll.Name = "ContentScroll"
+    ContentScroll.Size = UDim2.new(1, -10, 1, -10)
+    ContentScroll.Position = UDim2.new(0, 5, 0, 5)
+    ContentScroll.BackgroundTransparency = 1
+    ContentScroll.ScrollBarThickness = 8
+    ContentScroll.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 150)
+    ContentScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    ContentScroll.Parent = ContentContainer
+    
+    local ContentListLayout = Instance.new("UIListLayout")
+    ContentListLayout.Padding = UDim.new(0, 10)
+    ContentListLayout.FillDirection = Enum.FillDirection.Vertical
+    ContentListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    ContentListLayout.Parent = ContentScroll
+    
+    local Window = {
+        ScreenGui = ScreenGui,
+        MainFrame = MainFrame,
+        TopBar = TopBar,
+        TabsContainer = TabsContainer,
+        TabsScroll = TabsScroll,
+        ContentContainer = ContentContainer,
+        ContentScroll = ContentScroll,
+        Tabs = {},
+    }
+    
+    function Window:Tab(TabConfig)
+        TabConfig = TabConfig or {}
+        local TabName = TabConfig.Title or "Tab"
+        
+        -- Tab Button
+        local TabButton = Instance.new("TextButton")
+        TabButton.Name = TabName
+        TabButton.Size = UDim2.new(0.9, 0, 0, 45)
+        TabButton.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+        TabButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+        TabButton.TextScaled = true
+        TabButton.Font = Enum.Font.GothamBold
+        TabButton.Text = "📌 " .. TabName
+        TabButton.BorderSizePixel = 0
+        TabButton.Parent = TabsScroll
+        TabButton.LayoutOrder = #Window.Tabs + 1
+        
+        local TabButtonCorner = Instance.new("UICorner")
+        TabButtonCorner.CornerRadius = UDim.new(0, 8)
+        TabButtonCorner.Parent = TabButton
+        
+        -- Tab Content Frame
+        local TabContent = Instance.new("Frame")
+        TabContent.Name = TabName .. "Content"
+        TabContent.Size = UDim2.new(1, 0, 0, 0)
+        TabContent.BackgroundTransparency = 1
+        TabContent.Parent = ContentScroll
+        TabContent.Visible = false
+        TabContent.LayoutOrder = #Window.Tabs + 1
+        
+        local TabContentLayout = Instance.new("UIListLayout")
+        TabContentLayout.Padding = UDim.new(0, 8)
+        TabContentLayout.FillDirection = Enum.FillDirection.Vertical
+        TabContentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        TabContentLayout.Parent = TabContent
+        
+        TabButton.MouseButton1Click:Connect(function()
+            for _, tab in pairs(Window.Tabs) do
+                tab.Frame.Visible = false
+                tab.Button.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+                tab.Button.TextColor3 = Color3.fromRGB(200, 200, 200)
+            end
+            TabContent.Visible = true
+            TabButton.BackgroundColor3 = Color3.fromRGB(60, 60, 120)
+            TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end)
+        
+        local TabObj = {
+            Button = TabButton,
+            Frame = TabContent,
+            Elements = {},
+        }
+        
+        table.insert(Window.Tabs, TabObj)
+        
+        function TabObj:Label(Config)
+            Config = Config or {}
+            local LabelText = Config.Text or "Label"
+            
+            local Label = Instance.new("TextLabel")
+            Label.Name = "Label"
+            Label.Size = UDim2.new(1, 0, 0, 35)
+            Label.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+            Label.TextColor3 = Color3.fromRGB(255, 255, 100)
+            Label.TextScaled = true
+            Label.Font = Enum.Font.GothamBold
+            Label.Text = "► " .. LabelText
+            Label.BorderSizePixel = 0
+            Label.Parent = TabContent
+            
+            local LabelCorner = Instance.new("UICorner")
+            LabelCorner.CornerRadius = UDim.new(0, 6)
+            LabelCorner.Parent = Label
+            
+            return Label
+        end
+        
+        function TabObj:Button(Config)
+            Config = Config or {}
+            local ButtonText = Config.Title or "Button"
+            local Callback = Config.Callback or function() end
+            
+            local Button = Instance.new("TextButton")
+            Button.Name = ButtonText
+            Button.Size = UDim2.new(1, 0, 0, 40)
+            Button.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
+            Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+            Button.TextScaled = true
+            Button.Font = Enum.Font.GothamBold
+            Button.Text = "▶ " .. ButtonText
+            Button.BorderSizePixel = 0
+            Button.Parent = TabContent
+            
+            local ButtonCorner = Instance.new("UICorner")
+            ButtonCorner.CornerRadius = UDim.new(0, 8)
+            ButtonCorner.Parent = Button
+            
+            Button.MouseButton1Click:Connect(function()
+                Button.BackgroundColor3 = Color3.fromRGB(30, 150, 100)
+                Callback()
+                wait(0.1)
+                Button.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
+            end)
+            
+            return Button
+        end
+        
+        function TabObj:Toggle(Config)
+            Config = Config or {}
+            local ToggleText = Config.Title or "Toggle"
+            local DefaultValue = Config.Value or false
+            local Callback = Config.Callback or function() end
+            
+            local Container = Instance.new("Frame")
+            Container.Name = ToggleText
+            Container.Size = UDim2.new(1, 0, 0, 45)
+            Container.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+            Container.BorderSizePixel = 0
+            Container.Parent = TabContent
+            
+            local ContainerCorner = Instance.new("UICorner")
+            ContainerCorner.CornerRadius = UDim.new(0, 8)
+            ContainerCorner.Parent = Container
+            
+            local Label = Instance.new("TextLabel")
+            Label.Name = "Label"
+            Label.Size = UDim2.new(0.7, 0, 1, 0)
+            Label.BackgroundTransparency = 1
+            Label.TextColor3 = Color3.fromRGB(220, 220, 220)
+            Label.TextScaled = true
+            Label.Font = Enum.Font.Gotham
+            Label.Text = "◆ " .. ToggleText
+            Label.TextXAlignment = Enum.TextXAlignment.Left
+            Label.Parent = Container
+            
+            local ToggleButton = Instance.new("TextButton")
+            ToggleButton.Name = "Toggle"
+            ToggleButton.Size = UDim2.new(0, 50, 0, 30)
+            ToggleButton.Position = UDim2.new(1, -60, 0.5, -15)
+            ToggleButton.BackgroundColor3 = DefaultValue and Color3.fromRGB(50, 200, 100) or Color3.fromRGB(100, 100, 100)
+            ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+            ToggleButton.TextScaled = true
+            ToggleButton.Font = Enum.Font.GothamBold
+            ToggleButton.Text = DefaultValue and "ON" or "OFF"
+            ToggleButton.BorderSizePixel = 0
+            ToggleButton.Parent = Container
+            
+            local ToggleCorner = Instance.new("UICorner")
+            ToggleCorner.CornerRadius = UDim.new(0, 6)
+            ToggleCorner.Parent = ToggleButton
+            
+            local ToggleState = DefaultValue
+            
+            ToggleButton.MouseButton1Click:Connect(function()
+                ToggleState = not ToggleState
+                ToggleButton.BackgroundColor3 = ToggleState and Color3.fromRGB(50, 200, 100) or Color3.fromRGB(100, 100, 100)
+                ToggleButton.Text = ToggleState and "ON" or "OFF"
+                Callback(ToggleState)
+            end)
+            
+            return {Button = ToggleButton, GetState = function() return ToggleState end}
+        end
+        
+        function TabObj:Slider(Config)
+            Config = Config or {}
+            local SliderText = Config.Title or "Slider"
+            local MinVal = Config.Min or 0
+            local MaxVal = Config.Max or 100
+            local DefaultVal = Config.Default or MinVal
+            local Callback = Config.Callback or function() end
+            
+            local Container = Instance.new("Frame")
+            Container.Name = SliderText
+            Container.Size = UDim2.new(1, 0, 0, 70)
+            Container.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+            Container.BorderSizePixel = 0
+            Container.Parent = TabContent
+            
+            local ContainerCorner = Instance.new("UICorner")
+            ContainerCorner.CornerRadius = UDim.new(0, 8)
+            ContainerCorner.Parent = Container
+            
+            local Label = Instance.new("TextLabel")
+            Label.Name = "Label"
+            Label.Size = UDim2.new(1, 0, 0, 25)
+            Label.BackgroundTransparency = 1
+            Label.TextColor3 = Color3.fromRGB(220, 220, 220)
+            Label.TextScaled = true
+            Label.Font = Enum.Font.Gotham
+            Label.Text = "📊 " .. SliderText .. ": " .. tostring(DefaultVal)
+            Label.TextXAlignment = Enum.TextXAlignment.Left
+            Label.Parent = Container
+            
+            local SliderBackground = Instance.new("Frame")
+            SliderBackground.Name = "Background"
+            SliderBackground.Size = UDim2.new(1, -20, 0, 8)
+            SliderBackground.Position = UDim2.new(0, 10, 0, 35)
+            SliderBackground.BackgroundColor3 = Color3.fromRGB(60, 60, 100)
+            SliderBackground.BorderSizePixel = 0
+            SliderBackground.Parent = Container
+            
+            local SliderBackgroundCorner = Instance.new("UICorner")
+            SliderBackgroundCorner.CornerRadius = UDim.new(0, 4)
+            SliderBackgroundCorner.Parent = SliderBackground
+            
+            local SliderFill = Instance.new("Frame")
+            SliderFill.Name = "Fill"
+            SliderFill.Size = UDim2.new((DefaultVal - MinVal) / (MaxVal - MinVal), 0, 1, 0)
+            SliderFill.BackgroundColor3 = Color3.fromRGB(100, 200, 255)
+            SliderFill.BorderSizePixel = 0
+            SliderFill.Parent = SliderBackground
+            
+            local SliderFillCorner = Instance.new("UICorner")
+            SliderFillCorner.CornerRadius = UDim.new(0, 4)
+            SliderFillCorner.Parent = SliderFill
+            
+            local CurrentValue = DefaultVal
+            
+            local function UpdateSlider(input)
+                local relativeX = input.Position.X - SliderBackground.AbsolutePosition.X
+                local percentage = math.clamp(relativeX / SliderBackground.AbsoluteSize.X, 0, 1)
+                CurrentValue = math.floor(MinVal + (MaxVal - MinVal) * percentage)
+                SliderFill.Size = UDim2.new(percentage, 0, 1, 0)
+                Label.Text = "📊 " .. SliderText .. ": " .. tostring(CurrentValue)
+                Callback(CurrentValue)
+            end
+            
+            SliderBackground.InputBegan:Connect(function(input, gameProcessed)
+                if gameProcessed then return end
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    UpdateSlider(input)
+                    local Connection
+                    Connection = Mouse.Move:Connect(function()
+                        if Mouse.X and Mouse.Y then
+                            UpdateSlider({Position = Vector3.new(Mouse.X, Mouse.Y, 0)})
+                        end
+                    end)
+                    UserInputService.InputEnded:Connect(function(input2)
+                        if input2.UserInputType == Enum.UserInputType.MouseButton1 then
+                            Connection:Disconnect()
+                        end
+                    end)
+                end
+            end)
+            
+            return {GetValue = function() return CurrentValue end}
+        end
+        
+        return TabObj
+    end
+    
+    return Window
+end
+
+-- ==================== CREATE WINDOW ====================
+local Window = UILib:CreateWindow({
+    Title = "ZYRO HUB",
+    Author = "gomes.wqq"
 })
 
--- Janela Principal
-local Window = WindUI:CreateWindow({
-    Title   = "ZYRO HUB",
-    Author  = "gomes.wqq",
-    Folder  = "zyro_hub",
-    Icon    = "zap",
-    Theme   = "Dark",
-    Acrylic = true,
-    Transparent = true,
-    Background = "rbxassetid://84152360484913",
-    Size    = UDim2.fromOffset(680, 460),
-    MinSize = Vector2.new(560, 350),
-    MaxSize = Vector2.new(850, 560),
-    ToggleKey  = Enum.KeyCode.RightShift,
-    Resizable  = true,
-    AutoScale  = true,
-    NewElements = true,
-    BackgroundImageTransparency = 0.65,
-    HideSearchBar = false,
-    ScrollBarEnabled = false,
-    SideBarWidth = 200,
-})
+-- ==================== COMBAT TAB ====================
+local CombatTab = Window:Tab({Title = "🔫 COMBAT"})
 
--- ==================== ABA COMBAT ====================
-local CombatTab = Window:Tab({ Title = "Combat", Icon = "target" })
+CombatTab:Label({Text = "Murder Functions"})
 
-CombatTab:Label({ Text = "Murder Functions" })
-
-CombatTab:Button({
-    Title = "Kill All",
+local KillAllBtn = CombatTab:Button({
+    Title = "KILL ALL",
     Callback = function()
-        if killAllActive then return end
-        killAllActive = true
+        if Features.KillAll then
+            Features.KillAll = false
+            return
+        end
+        Features.KillAll = true
         
         for _, player in pairs(Players:GetPlayers()) do
             if player ~= LocalPlayer and player.Character then
                 local targetChar = player.Character
                 local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+                local targetHumanoid = targetChar:FindFirstChild("Humanoid")
                 
-                if targetHRP then
-                    -- Puxa o jogador para frente
+                if targetHRP and targetHumanoid and targetHumanoid.Health > 0 then
+                    -- Puxa para frente
                     local direction = (targetHRP.Position - RootPart.Position).Unit
-                    targetHRP.CFrame = RootPart.CFrame + direction * 5
+                    local pushPos = RootPart.CFrame + RootPart.CFrame.LookVector * 10
+                    targetHRP.CFrame = pushPos
                     
-                    -- Equipa a faca e clica
-                    local knife = Character:FindFirstChild("Knife") or workspace:FindFirstChild("Knife")
+                    wait(0.05)
+                    
+                    -- Pega a faca
+                    local knife = Character:FindFirstChild("Knife")
+                    if not knife then
+                        for _, obj in pairs(workspace:GetChildren()) do
+                            if obj.Name == "Knife" and obj:IsDescendantOf(Character) then
+                                knife = obj
+                                break
+                            end
+                        end
+                    end
+                    
                     if knife then
                         knife.Parent = Character
                     end
                     
-                    -- Simula o clique
-                    mouse1click()
-                    wait(0.3)
-                end
-            end
-        end
-        
-        killAllActive = false
-        WindUI:Notify({ Title = "Kill All", Content = "Executado!" })
-    end
-})
-
-CombatTab:Button({
-    Title = "Kill Sheriff",
-    Callback = function()
-        if killSherifActive then return end
-        killSherifActive = true
-        
-        for _, player in pairs(Players:GetPlayers()) do
-            if player:FindFirstChild("Role") and player.Role.Value == "Sheriff" then
-                local targetChar = player.Character
-                local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
-                
-                if targetHRP then
-                    -- Puxa o xerife para frente
-                    local direction = (targetHRP.Position - RootPart.Position).Unit
-                    targetHRP.CFrame = RootPart.CFrame + direction * 5
+                    wait(0.05)
                     
-                    -- Equipa a faca
-                    local knife = Character:FindFirstChild("Knife") or workspace:FindFirstChild("Knife")
-                    if knife then
-                        knife.Parent = Character
-                    end
-                    
-                    -- Clica
-                    mouse1click()
-                    wait(0.3)
-                end
-                break
-            end
-        end
-        
-        killSherifActive = false
-        WindUI:Notify({ Title = "Kill Sheriff", Content = "Executado!" })
-    end
-})
-
--- ==================== ABA SHERIFF ====================
-local SherifTab = Window:Tab({ Title = "Sheriff", Icon = "shield" })
-
-SherifTab:Label({ Text = "Sheriff Features" })
-
-SherifTab:Toggle({
-    Title = "Aimbot",
-    Value = false,
-    Callback = function(state)
-        aimbotActive = state
-        if aimbotActive then
-            WindUI:Notify({ Title = "Aimbot", Content = "Ativado!" })
-            
-            RunService.RenderStepped:Connect(function()
-                if not aimbotActive then return end
-                
-                for _, player in pairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer and player.Character then
-                        local targetChar = player.Character
-                        local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
-                        local targetTorso = targetChar:FindFirstChild("Torso") or targetChar:FindFirstChild("UpperTorso")
-                        
-                        if targetHRP and targetTorso then
-                            local distance = (targetHRP.Position - RootPart.Position).Magnitude
-                            
-                            if distance < aimbotFOV then
-                                Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetTorso.Position)
-                            end
-                        end
-                    end
-                end
-            end)
-        else
-            WindUI:Notify({ Title = "Aimbot", Content = "Desativado!" })
-        end
-    end
-})
-
-SherifTab:Slider({
-    Title = "Aimbot FOV",
-    Min = 100,
-    Max = 500,
-    Default = 300,
-    Callback = function(value)
-        aimbotFOV = value
-    end
-})
-
-SherifTab:Toggle({
-    Title = "Auto Collect Gun",
-    Value = false,
-    Callback = function(state)
-        autoCollectActive = state
-        if autoCollectActive then
-            WindUI:Notify({ Title = "Auto Collect", Content = "Monitorando xerife..." })
-            
-            RunService.Heartbeat:Connect(function()
-                if not autoCollectActive then return end
-                
-                for _, player in pairs(Players:GetPlayers()) do
-                    if player:FindFirstChild("Role") and player.Role.Value == "Sheriff" then
-                        local sheriffChar = player.Character
-                        
-                        if sheriffChar and not sheriffChar:FindFirstChild("Humanoid") or sheriffChar.Humanoid.Health <= 0 then
-                            -- Sheriff morreu
-                            originalPosition = RootPart.CFrame
-                            local deathPos = sheriffChar:FindFirstChild("HumanoidRootPart")
-                            
-                            if deathPos then
-                                RootPart.CFrame = deathPos.CFrame
-                                wait(1)
-                                RootPart.CFrame = originalPosition
-                                WindUI:Notify({ Title = "Auto Gun", Content = "Gun coletada!" })
-                            end
-                        end
-                        break
-                    end
-                end
-            end)
-        else
-            WindUI:Notify({ Title = "Auto Collect", Content = "Desativado!" })
-        end
-    end
-})
-
--- ==================== ABA ESP ====================
-local ESPTab = Window:Tab({ Title = "ESP", Icon = "eye" })
-
-ESPTab:Label({ Text = "Visual Features" })
-
-ESPTab:Toggle({
-    Title = "ESP Murders",
-    Value = false,
-    Callback = function(state)
-        espMurdersActive = state
-        if espMurdersActive then
-            WindUI:Notify({ Title = "ESP Murders", Content = "Ativado!" })
-            
-            for _, player in pairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer and player.Character then
-                    local char = player.Character
-                    for _, part in pairs(char:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.Color = Color3.fromRGB(255, 0, 0) -- Vermelho
-                            part.CanCollide = false
-                        end
-                    end
-                end
-            end
-        end
-    end
-})
-
-ESPTab:Toggle({
-    Title = "ESP Sheriff",
-    Value = false,
-    Callback = function(state)
-        espSherifActive = state
-        if espSherifActive then
-            WindUI:Notify({ Title = "ESP Sheriff", Content = "Ativado!" })
-            
-            for _, player in pairs(Players:GetPlayers()) do
-                if player:FindFirstChild("Role") and player.Role.Value == "Sheriff" then
-                    local char = player.Character
-                    if char then
-                        for _, part in pairs(char:GetDescendants()) do
-                            if part:IsA("BasePart") then
-                                part.Color = Color3.fromRGB(0, 100, 255) -- Azul
-                                part.CanCollide = false
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-})
-
--- ==================== ABA MOVEMENT ====================
-local MovementTab = Window:Tab({ Title = "Movement", Icon = "move" })
-
-MovementTab:Label({ Text = "Speed Controls" })
-
-MovementTab:Slider({
-    Title = "Velocidade",
-    Min = 1,
-    Max = 100,
-    Default = 16,
-    Callback = function(value)
-        playerSpeed = value
-        Humanoid.WalkSpeed = playerSpeed
-    end
-})
-
-MovementTab:Slider({
-    Title = "Força do Pulo",
-    Min = 1,
-    Max = 200,
-    Default = 50,
-    Callback = function(value)
-        jumpPower = value
-        Humanoid.JumpPower = jumpPower
-    end
-})
-
-MovementTab:Toggle({
-    Title = "Pou Infinito",
-    Value = false,
-    Callback = function(state)
-        pouInfinitoActive = state
-        if pouInfinitoActive then
-            WindUI:Notify({ Title = "Pou Infinito", Content = "Ativado!" })
-            
-            RunService.Heartbeat:Connect(function()
-                if not pouInfinitoActive then return end
-                Humanoid.Jump = true
-                RootPart.Velocity = Vector3.new(RootPart.Velocity.X, 0, RootPart.Velocity.Z)
-            end)
-        else
-            WindUI:Notify({ Title = "Pou Infinito", Content = "Desativado!" })
-        end
-    end
-})
-
--- ==================== ABA MISC ====================
-local MiscTab = Window:Tab({ Title = "Misc", Icon = "settings" })
-
-MiscTab:Label({ Text = "Miscellaneous" })
-
-local antiAFKActive = false
-MiscTab:Toggle({
-    Title = "Anti AFK",
-    Value = false,
-    Callback = function(state)
-        antiAFKActive = state
-        if antiAFKActive then
-            WindUI:Notify({ Title = "Anti AFK", Content = "Ativado!" })
-            
-            RunService.Heartbeat:Connect(function()
-                if not antiAFKActive then return end
-                -- Simula movimento para não dar AFK
-                game:GetService("Players"):FindFirstChild(LocalPlayer.Name).Parent = Players
-            end)
-        end
-    end
-})
-
-MiscTab:Toggle({
-    Title = "Auto Farm",
-    Value = false,
-    Callback = function(state)
-        autoFarmActive = state
-        if autoFarmActive then
-            WindUI:Notify({ Title = "Auto Farm", Content = "Personagem travado no céu!" })
-            
-            -- Trava o personagem no céu
-            RootPart.CFrame = CFrame.new(RootPart.Position + Vector3.new(0, 100, 0))
-            RootPart.Velocity = Vector3.new(0, 0, 0)
-            
-            RunService.Heartbeat:Connect(function()
-                if not autoFarmActive then return end
-                RootPart.Velocity = Vector3.new(0, 0, 0)
-            end)
-        end
-    end
-})
-
--- ==================== ABA SETTINGS ====================
-local SettingsTab = Window:Tab({ Title = "Settings", Icon = "settings" })
-
-SettingsTab:Dropdown({
-    Title  = "Theme",
-    Values = (function()
-        local names = {}
-        for name in pairs(WindUI:GetThemes()) do
-            table.insert(names, name)
-        end
-        table.sort(names)
-        return names
-    end)(),
-    Value    = WindUI:GetCurrentTheme(),
-    Callback = function(selected)
-        WindUI:SetTheme(selected)
-    end,
-})
-
-SettingsTab:Toggle({
-    Title = "Transparent",
-    Value = false,
-    Callback = function(state)
-        Window:ToggleTransparency(state)
-    end
-})
-
--- Notificação de Boas-vindas
-WindUI:Notify({
-    Title = "ZYRO HUB",
-    Content = "Bem-vindo! Script by gomes.wqq",
-})
-
-print("✓ ZYRO HUB Carregado com sucesso!")
+                    -- Click
+                    Mo
