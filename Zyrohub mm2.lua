@@ -1,63 +1,15 @@
---[[
-    ╔════════════════════════════════════════════════════════════════════════════╗
-    ║                                                                            ║
-    ║                     🔥 ZYRO HUB - MURDERS VS SHERIFF 🔥                   ║
-    ║                                                                            ║
-    ║                    COMPLETE & PERFECT SCRIPT v3.0                         ║
-    ║                     Desenvolvido por: gomes.wqq                           ║
-    ║                                                                            ║
-    ║  WARNING: This script has not been verified by ScriptBlox.                ║
-    ║  Use at your own risk!                                                    ║
-    ║                                                                            ║
-    ╚════════════════════════════════════════════════════════════════════════════╝
-]]
+-- [[ ZYRO HUB - CREDITS TO GOMES.WQQ ]] --
 
--- ======================= LOAD WINDUI =======================
-local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/refs/heads/main/main_example.lua"))()
-
--- ======================= SERVICES =======================
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+
 local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
-local Camera = workspace.CurrentCamera
+local Camera = Workspace.CurrentCamera
 
--- ======================= CHARACTER SETUP =======================
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local Humanoid = Character:WaitForChild("Humanoid")
-local RootPart = Character:WaitForChild("HumanoidRootPart")
-
--- ======================= FEATURE VARIABLES =======================
-local Features = {
-    -- Combat
-    KillAll = false,
-    KillSheriff = false,
-    
-    -- Sheriff
-    Aimbot = false,
-    AutoCollectGun = false,
-    
-    -- ESP
-    ESPMurders = false,
-    ESPSheriff = false,
-    
-    -- Movement
-    SpeedValue = 16,
-    JumpPowerValue = 50,
-    PouInfinito = false,
-    
-    -- Misc
-    AntiAFK = false,
-    AutoFarm = false,
-    
-    -- Settings
-    AimbotFOV = 300,
-    OriginalPosition = nil,
-    SherifDead = false,
-}
-
--- ======================= WINDUI THEME SETUP =======================
+-- Tema e Estilo Base
 WindUI:AddTheme({
     Name = "Dark",
     Accent = Color3.fromHex("#18181b"),
@@ -69,33 +21,31 @@ WindUI:AddTheme({
     Icon = Color3.fromHex("#a1a1aa"),
 })
 
--- ======================= CREATE WINDOW =======================
 local Window = WindUI:CreateWindow({
-    Title = "ZYRO HUB",
-    Author = "by gomes.wqq",
-    Folder = "zyro_hub",
-    Icon = "zap",
-    Theme = "Dark",
+    Title   = "Zyro Hub",
+    Author  = "by gomes.wqq",
+    Folder  = "zyrohub",
+    Icon    = "swords",
+    Theme   = "Dark",
     Acrylic = true,
     Transparent = true,
-    Background = "rbxassetid://84152360484913",
-    Size = UDim2.fromOffset(680, 460),
+    Size    = UDim2.fromOffset(680, 460),
     MinSize = Vector2.new(560, 350),
     MaxSize = Vector2.new(850, 560),
-    ToggleKey = Enum.KeyCode.RightShift,
-    Resizable = true,
-    AutoScale = true,
+    ToggleKey  = Enum.KeyCode.RightShift,
+    Resizable  = true,
+    AutoScale  = true,
     NewElements = true,
     BackgroundImageTransparency = 0.65,
     HideSearchBar = false,
     ScrollBarEnabled = false,
     SideBarWidth = 200,
     Topbar = {
-        Height = 44,
+        Height      = 44,
         ButtonsType = "Default",
     },
     OpenButton = {
-        Title = "ZYRO HUB",
+        Title = "Zyro Hub",
         Icon = "zap",
         CornerRadius = UDim.new(1, 0),
         StrokeThickness = 3,
@@ -103,483 +53,383 @@ local Window = WindUI:CreateWindow({
         Draggable = true,
         OnlyMobile = false,
         Scale = 1,
-        Color = ColorSequence.new(
-            Color3.fromHex("#000000"),
-            Color3.fromHex("#000000")
-        ),
+        Color = ColorSequence.new(Color3.fromHex("#000000"), Color3.fromHex("#000000")),
     },
     User = {
-        Enabled = true,
+        Enabled  = true,
         Anonymous = false,
-        Callback = function()
-            WindUI:Notify({
-                Title = "ZYRO HUB",
-                Content = "Developed by gomes.wqq | Murders vs Sheriff",
-            })
-        end,
+        Callback = function() end,
     },
 })
 
--- ======================= COMBAT TAB =======================
-local CombatTab = Window:Tab({
-    Title = "Combat",
-    Icon = "target"
-})
+-- ==========================================
+-- ABAS
+-- ==========================================
+local CombatMurderTab = Window:Tab({ Title = "Combat Murder", Icon = "skull" })
+local SheriffTab      = Window:Tab({ Title = "Sheriff", Icon = "shield" })
+local EspTab          = Window:Tab({ Title = "ESP", Icon = "eye" })
+local MovementTab     = Window:Tab({ Title = "Movement", Icon = "move" })
+local MiscTab         = Window:Tab({ Title = "Misc", Icon = "sparkles" })
+local SettingsTab     = Window:Tab({ Title = "Settings", Icon = "settings" })
 
-CombatTab:Label({
-    Title = "Murder Functions",
-})
+-- ==========================================
+-- FUNÇÕES AUXILIARES
+-- ==========================================
 
-CombatTab:Button({
-    Title = "Kill All",
-    Desc = "Mata todos os jogadores",
-    Callback = function()
-        if Features.KillAll then
-            Features.KillAll = false
-            WindUI:Notify({
-                Title = "Kill All",
-                Content = "Desativado!",
-            })
-            return
-        end
-        
-        Features.KillAll = true
-        WindUI:Notify({
-            Title = "Kill All",
-            Content = "Executando...",
-        })
-        
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character then
-                local targetChar = player.Character
-                local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
-                local targetHumanoid = targetChar:FindFirstChild("Humanoid")
-                
-                if targetHRP and targetHumanoid and targetHumanoid.Health > 0 then
-                    -- Puxa jogador para frente
-                    local direction = (targetHRP.Position - RootPart.Position).Unit
-                    local pushPos = RootPart.CFrame + RootPart.CFrame.LookVector * 10
-                    targetHRP.CFrame = pushPos
-                    
-                    wait(0.1)
-                    
-                    -- Pega a faca
-                    local knife = Character:FindFirstChild("Knife")
-                    if not knife then
-                        for _, tool in pairs(Character:GetChildren()) do
-                            if tool:IsA("Tool") and (tool.Name:lower():find("knife") or tool.Name:lower():find("faca")) then
-                                knife = tool
-                                break
-                            end
-                        end
-                    end
-                    
-                    if knife then
-                        knife.Parent = Character
-                        knife.Grip = CFrame.new(0, 0, -5)
-                    end
-                    
-                    wait(0.05)
-                    
-                    -- Simula clique
-                    local clickEvent = knife and knife:FindFirstChild("Activated")
-                    if knife and knife:FindFirstChild("Handle") then
-                        Mouse.Target = targetHumanoid.Parent
-                        wait(0.05)
-                    end
-                    
-                    wait(0.2)
+-- Puxar Faca / Equipar Tool
+local function equipTool()
+    if LocalPlayer.Character then
+        local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
+        if backpack then
+            for _, tool in pairs(backpack:GetChildren()) do
+                if tool:IsA("Tool") then
+                    tool.Parent = LocalPlayer.Character
+                    break
                 end
             end
         end
-        
-        Features.KillAll = false
-        WindUI:Notify({
-            Title = "Kill All",
-            Content = "Completo!",
-        })
     end
-})
+end
 
-CombatTab:Button({
-    Title = "Kill Sheriff",
-    Desc = "Mata apenas o xerife",
-    Callback = function()
-        if Features.KillSheriff then
-            Features.KillSheriff = false
-            WindUI:Notify({
-                Title = "Kill Sheriff",
-                Content = "Desativado!",
-            })
-            return
+-- Simular clique
+local function clickTool()
+    equipTool()
+    task.wait(0.05)
+    local char = LocalPlayer.Character
+    if char then
+        local tool = char:FindFirstChildOfClass("Tool")
+        if tool then
+            tool:Activate()
         end
-        
-        Features.KillSheriff = true
-        WindUI:Notify({
-            Title = "Kill Sheriff",
-            Content = "Procurando xerife...",
-        })
-        
-        for _, player in pairs(Players:GetPlayers()) do
-            local role = player:FindFirstChild("Role")
-            if role and role.Value == "Sheriff" then
-                local targetChar = player.Character
-                if targetChar then
-                    local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
-                    local targetHumanoid = targetChar:FindFirstChild("Humanoid")
-                    
-                    if targetHRP and targetHumanoid and targetHumanoid.Health > 0 then
-                        local direction = (targetHRP.Position - RootPart.Position).Unit
-                        local pushPos = RootPart.CFrame + RootPart.CFrame.LookVector * 10
-                        targetHRP.CFrame = pushPos
-                        
-                        wait(0.1)
-                        
-                        local knife = Character:FindFirstChild("Knife")
-                        if not knife then
-                            for _, tool in pairs(Character:GetChildren()) do
-                                if tool:IsA("Tool") and (tool.Name:lower():find("knife") or tool.Name:lower():find("faca")) then
-                                    knife = tool
-                                    break
-                                end
-                            end
-                        end
-                        
-                        if knife then
-                            knife.Parent = Character
-                            knife.Grip = CFrame.new(0, 0, -5)
-                        end
-                        
-                        wait(0.05)
-                        
-                        if knife and knife:FindFirstChild("Handle") then
-                            Mouse.Target = targetHumanoid.Parent
-                            wait(0.05)
-                        end
-                        
-                        wait(0.2)
-                    end
-                end
-                break
+    end
+end
+
+-- Puxar Personagem para a Frente
+local function bringCharacter(targetChar)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        if targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
+            local frontPos = LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
+            targetChar.HumanoidRootPart.CFrame = frontPos
+        end
+    end
+end
+
+-- Busca o Xerife
+local function getSheriff()
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            if p.Character:FindFirstChild("Gun") or p.Backpack:FindFirstChild("Gun") or (p.Team and p.Team.Name:lower():find("sheriff")) then
+                return p
             end
         end
-        
-        Features.KillSheriff = false
-        WindUI:Notify({
-            Title = "Kill Sheriff",
-            Content = "Completo!",
-        })
     end
+    return nil
+end
+
+-- Busca o Murderer
+local function getMurderer()
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            if p.Character:FindFirstChild("Knife") or p.Backpack:FindFirstChild("Knife") or (p.Team and p.Team.Name:lower():find("murder")) then
+                return p
+            end
+        end
+    end
+    return nil
+end
+
+-- ==========================================
+-- 1. ABA COMBAT MURDER
+-- ==========================================
+
+CombatMurderTab:Button({
+    Title = "Puxar Todos (Clique Único)",
+    Callback = function()
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character then
+                bringCharacter(p.Character)
+            end
+        end
+        clickTool()
+    end,
 })
 
--- ======================= SHERIFF TAB =======================
-local SherifTab = Window:Tab({
-    Title = "Sheriff",
-    Icon = "shield"
+CombatMurderTab:Button({
+    Title = "Puxar Xerife (Clique Único)",
+    Callback = function()
+        local sheriff = getSheriff()
+        if sheriff and sheriff.Character then
+            bringCharacter(sheriff.Character)
+            clickTool()
+        end
+    end,
 })
 
-SherifTab:Label({
-    Title = "Sheriff Features",
-})
+-- ==========================================
+-- 2. ABA SHERIFF
+-- ==========================================
 
-SherifTab:Toggle({
-    Title = "Aimbot",
+local miraMagicaActive = false
+SheriffTab:Toggle({
+    Title = "Mira Mágica (Raio 300)",
     Value = false,
-    Callback = function(state)
-        Features.Aimbot = state
-        
-        if Features.Aimbot then
-            WindUI:Notify({
-                Title = "Aimbot",
-                Content = "Ativado! FOV: " .. Features.AimbotFOV,
-            })
-            
-            local AimbotConnection
-            AimbotConnection = RunService.RenderStepped:Connect(function()
-                if not Features.Aimbot then
-                    AimbotConnection:Disconnect()
-                    return
+    Callback = function(v)
+        miraMagicaActive = v
+    end
+})
+
+RunService.RenderStepped:Connect(function()
+    if miraMagicaActive and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local myPos = LocalPlayer.Character.HumanoidRootPart.Position
+        local closestTarget = nil
+        local shortestDist = 300
+
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= player and p.Character and p.Character:FindFirstChild("UpperTorso") or (p.Character and p.Character:FindFirstChild("Torso")) then
+                local chest = p.Character:FindFirstChild("UpperTorso") or p.Character:FindFirstChild("Torso")
+                local dist = (chest.Position - myPos).Magnitude
+                if dist <= shortestDist then
+                    shortestDist = dist
+                    closestTarget = chest
                 end
-                
-                local closestPlayer = nil
-                local closestDistance = Features.AimbotFOV
-                
-                for _, player in pairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer and player.Character then
-                        local targetHRP = player.Character:FindFirstChild("HumanoidRootPart")
-                        local targetTorso = player.Character:FindFirstChild("Torso") or player.Character:FindFirstChild("UpperTorso")
-                        local humanoid = player.Character:FindFirstChild("Humanoid")
-                        
-                        if targetHRP and targetTorso and humanoid and humanoid.Health > 0 then
-                            local distance = (targetHRP.Position - RootPart.Position).Magnitude
-                            
-                            if distance < closestDistance then
-                                closestDistance = distance
-                                closestPlayer = targetTorso
-                            end
-                        end
-                    end
-                end
-                
-                if closestPlayer then
-                    local newCFrame = CFrame.new(Camera.CFrame.Position, closestPlayer.Position + closestPlayer.CFrame.LookVector * 0.6)
-                    Camera.CFrame = Camera.CFrame:Lerp(newCFrame, 0.08)
-                end
-            end)
-        else
-            WindUI:Notify({
-                Title = "Aimbot",
-                Content = "Desativado!",
-            })
+            end
+        end
+
+        if closestTarget then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, closestTarget.Position)
         end
     end
-})
+end)
 
-SherifTab:Slider({
-    Title = "Aimbot FOV",
-    Min = 50,
-    Max = 500,
-    Default = 300,
-    Callback = function(value)
-        Features.AimbotFOV = value
-    end
-})
-
-SherifTab:Toggle({
+-- Auto Collect Gun
+local autoCollectActive = false
+SheriffTab:Toggle({
     Title = "Auto Collect Gun",
     Value = false,
-    Callback = function(state)
-        Features.AutoCollectGun = state
-        Features.OriginalPosition = RootPart.CFrame
-        Features.SherifDead = false
-        
-        if Features.AutoCollectGun then
-            WindUI:Notify({
-                Title = "Auto Collect Gun",
-                Content = "Monitorando xerife...",
-            })
-            
-            local CollectConnection
-            CollectConnection = RunService.Heartbeat:Connect(function()
-                if not Features.AutoCollectGun then
-                    CollectConnection:Disconnect()
-                    return
-                end
-                
-                for _, player in pairs(Players:GetPlayers()) do
-                    local role = player:FindFirstChild("Role")
-                    if role and role.Value == "Sheriff" then
-                        local targetChar = player.Character
-                        if targetChar then
-                            local humanoid = targetChar:FindFirstChild("Humanoid")
-                            
-                            if humanoid and humanoid.Health <= 0 and not Features.SherifDead then
-                                Features.SherifDead = true
-                                local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
-                                
-                                if targetHRP and Features.OriginalPosition then
-                                    RootPart.CFrame = targetHRP.CFrame + Vector3.new(0, 2, 0)
-                                    wait(1)
-                                    RootPart.CFrame = Features.OriginalPosition
-                                    
-                                    WindUI:Notify({
-                                        Title = "Auto Collect Gun",
-                                        Content = "Gun coletada!",
-                                    })
-                                end
-                            end
-                        end
-                        break
-                    end
-                end
-            end)
-        else
-            WindUI:Notify({
-                Title = "Auto Collect Gun",
-                Content = "Desativado!",
-            })
-        end
+    Callback = function(v)
+        autoCollectActive = v
     end
 })
 
--- ======================= ESP TAB =======================
-local ESPTab = Window:Tab({
-    Title = "ESP",
-    Icon = "eye"
-})
-
-ESPTab:Label({
-    Title = "Visual Features",
-})
-
-ESPTab:Toggle({
-    Title = "ESP Murders (RED)",
-    Value = false,
-    Callback = function(state)
-        Features.ESPMurders = state
-        
-        if Features.ESPMurders then
-            WindUI:Notify({
-                Title = "ESP Murders",
-                Content = "Ativado! Vermelho",
-            })
-            
-            local ESPConnection
-            ESPConnection = RunService.Heartbeat:Connect(function()
-                if not Features.ESPMurders then
-                    ESPConnection:Disconnect()
-                    return
-                end
-                
-                for _, player in pairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer and player.Character then
-                        local role = player:FindFirstChild("Role")
-                        if role and role.Value == "Murderer" then
-                            for _, part in pairs(player.Character:GetDescendants()) do
-                                if part:IsA("BasePart") then
-                                    part.Color = Color3.fromRGB(255, 0, 0)
-                                    part.Material = Enum.Material.Neon
-                                    part.CanCollide = false
-                                end
-                            end
-                        end
-                    end
-                end
-            end)
-        else
-            for _, player in pairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer and player.Character then
-                    for _, part in pairs(player.Character:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.Material = Enum.Material.Plastic
-                            part.CanCollide = true
-                        end
+-- Monitoramento da Morte do Xerife
+task.spawn(function()
+    while task.wait(0.2) do
+        if autoCollectActive then
+            local sheriff = getSheriff()
+            if sheriff and sheriff.Character and sheriff.Character:FindFirstChild("Humanoid") then
+                if sheriff.Character.Humanoid.Health <= 0 then
+                    local deathPos = sheriff.Character.HumanoidRootPart.CFrame
+                    local lastPos = LocalPlayer.Character and LocalPlayer.Character.HumanoidRootPart.CFrame
+                    
+                    if lastPos and deathPos then
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = deathPos
+                        task.wait(1)
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = lastPos
+                        autoCollectActive = false
                     end
                 end
             end
-            
-            WindUI:Notify({
-                Title = "ESP Murders",
-                Content = "Desativado!",
-            })
         end
     end
-})
+end)
 
-ESPTab:Toggle({
-    Title = "ESP Sheriff (BLUE)",
+-- ==========================================
+-- 3. ABA ESP
+-- ==========================================
+
+local espMurder = false
+local espSheriff = false
+
+local function applyHighlight(char, color)
+    if not char:FindFirstChild("ZyroHighlight") then
+        local hl = Instance.new("Highlight")
+        hl.Name = "ZyroHighlight"
+        hl.FillColor = color
+        hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+        hl.FillTransparency = 0.2
+        hl.OutlineTransparency = 0
+        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        hl.Parent = char
+    end
+end
+
+local function removeHighlight(char)
+    if char:FindFirstChild("ZyroHighlight") then
+        char.ZyroHighlight:Destroy()
+    end
+end
+
+EspTab:Toggle({
+    Title = "ESP Murder (Vermelho)",
     Value = false,
-    Callback = function(state)
-        Features.ESPSheriff = state
-        
-        if Features.ESPSheriff then
-            WindUI:Notify({
-                Title = "ESP Sheriff",
-                Content = "Ativado! Azul",
-            })
-            
-            local ESPConnection
-            ESPConnection = RunService.Heartbeat:Connect(function()
-                if not Features.ESPSheriff then
-                    ESPConnection:Disconnect()
-                    return
-                end
-                
-                for _, player in pairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer and player.Character then
-                        local role = player:FindFirstChild("Role")
-                        if role and role.Value == "Sheriff" then
-                            for _, part in pairs(player.Character:GetDescendants()) do
-                                if part:IsA("BasePart") then
-                                    part.Color = Color3.fromRGB(0, 100, 255)
-                                    part.Material = Enum.Material.Neon
-                                    part.CanCollide = false
-                                end
-                            end
-                        end
-                    end
-                end
-            end)
-        else
-            for _, player in pairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer and player.Character then
-                    for _, part in pairs(player.Character:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.Material = Enum.Material.Plastic
-                            part.CanCollide = true
-                        end
-                    end
-                end
+    Callback = function(v)
+        espMurder = v
+    end
+})
+
+EspTab:Toggle({
+    Title = "ESP Xerife (Azul)",
+    Value = false,
+    Callback = function(v)
+        espSheriff = v
+    end
+})
+
+RunService.RenderStepped:Connect(function()
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            -- ESP Murder
+            local murder = getMurderer()
+            if espMurder and murder and p == murder then
+                applyHighlight(p.Character, Color3.fromRGB(255, 0, 0))
+            elseif not espMurder and p == murder then
+                removeHighlight(p.Character)
             end
-            
-            WindUI:Notify({
-                Title = "ESP Sheriff",
-                Content = "Desativado!",
-            })
+
+            -- ESP Sheriff
+            local sheriff = getSheriff()
+            if espSheriff and sheriff and p == sheriff then
+                applyHighlight(p.Character, Color3.fromRGB(0, 120, 255))
+            elseif not espSheriff and p == sheriff then
+                removeHighlight(p.Character)
+            end
         end
     end
-})
+end)
 
--- ======================= MOVEMENT TAB =======================
-local MovementTab = Window:Tab({
-    Title = "Movement",
-    Icon = "move"
-})
-
-MovementTab:Label({
-    Title = "Speed Controls",
-})
+-- ==========================================
+-- 4. ABA MOVEMENT
+-- ==========================================
 
 MovementTab:Slider({
-    Title = "Player Speed",
-    Min = 1,
-    Max = 150,
-    Default = 16,
-    Callback = function(value)
-        Features.SpeedValue = value
-        if Humanoid then
-            Humanoid.WalkSpeed = value
-        end
-    end
-})
-
-MovementTab:Slider({
-    Title = "Jump Power",
-    Min = 1,
+    Title = "Velocidade (Speed)",
+    Min = 16,
     Max = 200,
-    Default = 50,
-    Callback = function(value)
-        Features.JumpPowerValue = value
-        if Humanoid then
-            Humanoid.JumpPower = value
+    Default = 16,
+    Callback = function(v)
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+            LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = v
         end
     end
 })
 
 MovementTab:Toggle({
-    Title = "Infinite Jump (Pou)",
+    Title = "Pulo Infinito",
     Value = false,
+    Callback = function(v)
+        _G.InfJump = v
+    end
+})
+
+UserInputService.JumpRequest:Connect(function()
+    if _G.InfJump and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
+
+MovementTab:Slider({
+    Title = "Força do Pulo (JumpPower)",
+    Min = 50,
+    Max = 300,
+    Default = 50,
+    Callback = function(v)
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+            local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            hum.UseJumpPower = true
+            hum.JumpPower = v
+        end
+    end
+})
+
+-- ==========================================
+-- 5. ABA MISC
+-- ==========================================
+
+MiscTab:Toggle({
+    Title = "Anti AFK",
+    Value = true,
+    Callback = function(v)
+        _G.AntiAfk = v
+    end
+})
+
+-- Anti AFK Event
+LocalPlayer.Idled:Connect(function()
+    if _G.AntiAfk then
+        local VirtualUser = game:GetService("VirtualUser")
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new(0, 0))
+    end
+end)
+
+-- Auto Farm (Travado 100 stud no céu)
+local autoFarmActive = false
+MiscTab:Toggle({
+    Title = "Auto Farm (Sky Freeze)",
+    Value = false,
+    Callback = function(v)
+        autoFarmActive = v
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            if v then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(0, 100, 0)
+                LocalPlayer.Character.HumanoidRootPart.Anchored = true
+            else
+                LocalPlayer.Character.HumanoidRootPart.Anchored = false
+            end
+        end
+    end
+})
+
+-- ==========================================
+-- SETTINGS TAB
+-- ==========================================
+
+SettingsTab:Dropdown({
+    Title  = "Theme",
+    Values = (function()
+        local names = {}
+        for name in pairs(WindUI:GetThemes()) do
+            table.insert(names, name)
+        end
+        table.sort(names)
+        return names
+    end)(),
+    Value    = WindUI:GetCurrentTheme(),
+    Callback = function(selected)
+        WindUI:SetTheme(selected)
+    end,
+})
+
+SettingsTab:Toggle({
+    Title = "Acrylic",
+    Value = WindUI:GetTransparency(),
+    Callback = function()
+        local isOn = WindUI.Window.Acrylic
+        WindUI:ToggleAcrylic(not isOn)
+    end,
+})
+
+SettingsTab:Toggle({
+    Title = "Transparent",
+    Value = WindUI:GetTransparency(),
     Callback = function(state)
-        Features.PouInfinito = state
-        
-        if Features.PouInfinito then
-            WindUI:Notify({
-                Title = "Infinite Jump",
-                Content = "Ativado! Pressione SPACE",
-            })
-            
-            local PouConnection
-            PouConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-                if gameProcessed then return end
-                
-                if not Features.PouInfinito then
-                    PouConnection:Disconnect()
-                    return
-                end
-                
-                if input.KeyCode == Enum.KeyCode.Space then
-                    Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-                end
-            end)
-        else
-            Wind
+        Window:ToggleTransparency(state)
+    end
+})
+
+local currentKey = Enum.KeyCode.RightShift
+
+SettingsTab:Keybind({
+    Title = "Toggle UI Key",
+    Value = currentKey,
+    Callback = function(v)
+        currentKey = (typeof(v) == "EnumItem") and v or Enum.KeyCode[v]
+        Window:SetToggleKey(currentKey)
+    end,
+})
+
+-- Notify On Load
+WindUI:Notify({
+    Title = "Zyro Hub Loaded!",
+    Content = "Script executado com sucesso! Criado por gomes.wqq.",
+})
