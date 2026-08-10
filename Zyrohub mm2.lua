@@ -27,42 +27,37 @@ local Window = WindUI:CreateWindow({
     Folder  = "zyrohub",
     Icon    = "swords",
     Theme   = "Dark",
-    Acrylic = true,
-    Transparent = true,
+    Acrylic = false, -- Desativado para evitar interferência de cliques
+    Transparent = false,
     Size    = UDim2.fromOffset(680, 460),
     MinSize = Vector2.new(560, 350),
     MaxSize = Vector2.new(850, 560),
-    ToggleKey  = Enum.KeyCode.X,
     Resizable  = true,
     AutoScale  = true,
     NewElements = true,
     BackgroundImageTransparency = 0.65,
     HideSearchBar = false,
-    ScrollBarEnabled = false,
+    ScrollBarEnabled = true,
     SideBarWidth = 200,
     Topbar = {
         Height      = 44,
         ButtonsType = "Default",
     },
     OpenButton = {
-        Title = "Zyro Hub",
-        Icon = "zap",
-        CornerRadius = UDim.new(1, 0),
-        StrokeThickness = 3,
-        Enabled = true,
-        Draggable = true,
-        OnlyMobile = false,
-        Scale = 1,
-        Color = ColorSequence.new(Color3.fromHex("#000000"), Color3.fromHex("#000000")),
+        Enabled = false -- Desativado para não bloquear os cliques na tela
     },
 })
 
--- Atalho global para abrir/fechar com a tecla X
+-- Gerenciador da Tecla X para Minimizar / Abrir
 local currentKey = Enum.KeyCode.X
+local isMinimized = false
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if not gameProcessed and input.KeyCode == currentKey then
-        Window:Toggle()
+        isMinimized = not isMinimized
+        if Window.Toggle then
+            Window:Toggle()
+        end
     end
 end)
 
@@ -445,33 +440,15 @@ SettingsTab:Dropdown({
     end,
 })
 
-SettingsTab:Toggle({
-    Title = "Acrylic",
-    Value = WindUI:GetTransparency(),
-    Callback = function()
-        local isOn = WindUI.Window.Acrylic
-        WindUI:ToggleAcrylic(not isOn)
-    end,
-})
-
-SettingsTab:Toggle({
-    Title = "Transparent",
-    Value = WindUI:GetTransparency(),
-    Callback = function(state)
-        Window:ToggleTransparency(state)
-    end
-})
-
 SettingsTab:Keybind({
     Title = "Toggle UI Key",
     Value = currentKey,
     Callback = function(v)
         currentKey = (typeof(v) == "EnumItem") and v or Enum.KeyCode[v]
-        Window:SetToggleKey(currentKey)
     end,
 })
 
 WindUI:Notify({
-    Title = "Zyro Hub V2 Ready!",
-    Content = "Script atualizado e corrigido com sucesso para PC!",
+    Title = "Zyro Hub V2 Fix",
+    Content = "Controles, sliders e tecla X corrigidos com sucesso!",
 })
