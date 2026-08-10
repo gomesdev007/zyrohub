@@ -7,117 +7,137 @@ local VirtualInputManager = game:GetService("VirtualInputManager")
 local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
+local Camera = Workspace.CurrentCamera
+local Mouse = LocalPlayer:GetMouse()
 
--- Configurações
-local RADIUS = 300
-local HITBOX_SIZE = Vector3.new(20, 20, 20)
-local Enabled = false
-local AutoCollectEnabled = false
-local TeamCheckEnabled = false
-local CursorClickEnabled = false
+-- Configurações de Estado
+local States = {
+    HitboxEnabled = false,
+    AutoCollectEnabled = false,
+    TeamCheckEnabled = false,
+    CursorClickEnabled = false
+}
 
--- Interface Principal
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "GomesDarkGUI"
+-- Interface
+local ScreenGui = Instance.new("ScreenGui", (gethui and gethui()) or LocalPlayer:WaitForChild("PlayerGui"))
+ScreenGui.Name = "GomesHubRefined"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = (gethui and gethui()) or (syn and syn.protect_gui and game:GetService("CoreGui")) or LocalPlayer:WaitForChild("PlayerGui")
 
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
+local MainFrame = Instance.new("Frame", ScreenGui)
 MainFrame.Size = UDim2.new(0, 250, 0, 280)
 MainFrame.Position = UDim2.new(0.5, -125, 0.4, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(10, 14, 23)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 MainFrame.BorderSizePixel = 0
-MainFrame.ClipsDescendants = true
 MainFrame.Active = true
-MainFrame.Parent = ScreenGui
 
--- ... (Manter a estrutura de UI que você já possui) ...
-local UICorner = Instance.new("UICorner"); UICorner.CornerRadius = UDim.new(0, 10); UICorner.Parent = MainFrame
-local UIStroke = Instance.new("UIStroke"); UIStroke.Color = Color3.fromRGB(25, 40, 70); UIStroke.Thickness = 1.5; UIStroke.Parent = MainFrame
+local TopBar = Instance.new("Frame", MainFrame)
+TopBar.Size = UDim2.new(1, 0, 0, 30)
+TopBar.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 
-local TopBar = Instance.new("Frame"); TopBar.Size = UDim2.new(1, 0, 0, 32); TopBar.BackgroundColor3 = Color3.fromRGB(16, 22, 36); TopBar.Parent = MainFrame
-local TitleLabel = Instance.new("TextLabel"); TitleLabel.Size = UDim2.new(1, -40, 1, 0); TitleLabel.Position = UDim2.new(0, 12, 0, 0); TitleLabel.BackgroundTransparency = 1; TitleLabel.Text = "GOMES SYSTEM"; TitleLabel.TextColor3 = Color3.fromRGB(220, 230, 255); TitleLabel.TextSize = 12; TitleLabel.Font = Enum.Font.GothamBold; TitleLabel.Parent = TopBar
-local MinimizeBtn = Instance.new("TextButton"); MinimizeBtn.Size = UDim2.new(0, 25, 0, 25); MinimizeBtn.Position = UDim2.new(1, -28, 0, 3); MinimizeBtn.BackgroundTransparency = 1; MinimizeBtn.Text = "-"; MinimizeBtn.TextColor3 = Color3.fromRGB(160, 180, 210); MinimizeBtn.Parent = TopBar
+-- Arraste da GUI
+local dragging, dragStart, startPos
+TopBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true; dragStart = input.Position; startPos = MainFrame.Position
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+end)
 
--- Criador de Toggles
-local function createToggle(titleText, positionY, callback)
-    local ToggleFrame = Instance.new("Frame"); ToggleFrame.Size = UDim2.new(0, 226, 0, 40); ToggleFrame.Position = UDim2.new(0.5, -113, 0, positionY); ToggleFrame.BackgroundColor3 = Color3.fromRGB(15, 20, 32); ToggleFrame.Parent = MainFrame
-    Instance.new("UICorner", ToggleFrame).CornerRadius = UDim.new(0, 8)
-    local ToggleText = Instance.new("TextLabel", ToggleFrame); ToggleText.Size = UDim2.new(0, 150, 1, 0); ToggleText.Position = UDim2.new(0, 10, 0, 0); ToggleText.BackgroundTransparency = 1; ToggleText.Text = titleText; ToggleText.TextColor3 = Color3.fromRGB(200, 210, 235); ToggleText.TextSize = 10; ToggleText.Font = Enum.Font.GothamMedium
+-- Botões
+local function createButton(name, stateKey, yPos)
+    local btn = Instance.new("TextButton", MainFrame)
+    btn.Size = UDim2.new(0, 230, 0, 40)
+    btn.Position = UDim2.new(0, 10, 0, yPos)
+    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    btn.Text = name .. ": OFF"
+    btn.TextColor3 = Color3.new(1, 1, 1)
     
-    local SwitchBG = Instance.new("TextButton", ToggleFrame); SwitchBG.Size = UDim2.new(0, 44, 0, 22); SwitchBG.Position = UDim2.new(1, -52, 0.5, -11); SwitchBG.BackgroundColor3 = Color3.fromRGB(30, 38, 55); SwitchBG.Text = ""
-    Instance.new("UICorner", SwitchBG).CornerRadius = UDim.new(1, 0)
-    local SwitchCircle = Instance.new("Frame", SwitchBG); SwitchCircle.Size = UDim2.new(0, 16, 0, 16); SwitchCircle.Position = UDim2.new(0, 3, 0.5, -8); SwitchCircle.BackgroundColor3 = Color3.fromRGB(110, 125, 150); SwitchCircle.BorderSizePixel = 0
-    Instance.new("UICorner", SwitchCircle).CornerRadius = UDim.new(1, 0)
-
-    local isToggled = false
-    SwitchBG.MouseButton1Click:Connect(function()
-        isToggled = not isToggled
-        local color = isToggled and Color3.fromRGB(0, 140, 255) or Color3.fromRGB(30, 38, 55)
-        local pos = isToggled and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8)
-        TweenService:Create(SwitchBG, TweenInfo.new(0.2), {BackgroundColor3 = color}):Play()
-        TweenService:Create(SwitchCircle, TweenInfo.new(0.2), {Position = pos, BackgroundColor3 = isToggled and Color3.fromRGB(255,255,255) or Color3.fromRGB(110, 125, 150)}):Play()
-        callback(isToggled)
+    btn.MouseButton1Click:Connect(function()
+        States[stateKey] = not States[stateKey]
+        btn.Text = name .. (States[stateKey] and ": ON" or ": OFF")
+        btn.BackgroundColor3 = States[stateKey] and Color3.fromRGB(0, 100, 200) or Color3.fromRGB(30, 30, 40)
     end)
+    return btn
 end
 
--- Toggles (Reorganizados para caber)
-createToggle("Hitbox 20 + Auto Click", 40, function(s) Enabled = s end)
-createToggle("Auto Collect Gun", 85, function(s) AutoCollectEnabled = s end)
-createToggle("Team Check", 130, function(s) TeamCheckEnabled = s end)
-createToggle("Auto Click Cursor", 175, function(s) CursorClickEnabled = s end)
+createButton("Hitbox+AutoClick", "HitboxEnabled", 40)
+createButton("Auto Collect Gun", "AutoCollectEnabled", 90)
+createButton("Team Check", "TeamCheckEnabled", 140)
+createButton("Cursor Auto Click", "CursorClickEnabled", 190)
 
--- Funções Utilitárias
-local function isGuiBlocking(pos)
-    local objs = UserInputService:GetGuiObjectsAtPosition(pos)
-    return #objs > 0
-end
-
-local function isVisible(targetPart)
-    local ray = Ray.new(Camera.CFrame.Position, (targetPart.Position - Camera.CFrame.Position).Unit * 500)
-    local hit = Workspace:FindPartOnRayWithIgnoreList(ray, {LocalPlayer.Character, targetPart.Parent})
-    return hit == nil
-end
-
--- Dash na tecla Z
-UserInputService.InputBegan:Connect(function(input, processed)
-    if not processed and input.KeyCode == Enum.KeyCode.Z then
+-- Teclas
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.X then MainFrame.Visible = not MainFrame.Visible end
+    if input.KeyCode == Enum.KeyCode.Z then -- Dash
         local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if hrp then hrp.CFrame = hrp.CFrame + (hrp.CFrame.LookVector * 2) end
     end
 end)
 
--- Tecla X para Abrir/Fechar
-UserInputService.InputBegan:Connect(function(input, processed)
-    if not processed and input.KeyCode == Enum.KeyCode.X then MainFrame.Visible = not MainFrame.Visible end
-end)
+-- Funções Auxiliares
+local function isPositionBlocked(pos)
+    local objects = UserInputService:GetGuiObjectsAtPosition(pos.X, pos.Y)
+    return #objects > 0
+end
 
--- Lógica de Auto Click (Targeting)
+-- Loop Principal (Hitbox + Auto Click)
 RunService.RenderStepped:Connect(function()
-    if not Enabled then return end
+    if not States.HitboxEnabled then return end
+    
     local myChar = LocalPlayer.Character
     if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return end
     
-    for _, player in ipairs(Players:GetPlayers()) do
+    for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            if not (TeamCheckEnabled and player.Team == LocalPlayer.Team) then
-                local targetHRP = player.Character.HumanoidRootPart
-                
-                -- Aplica Hitbox e verifica visão
-                targetHRP.Size = HITBOX_SIZE
-                targetHRP.Transparency = 0.7
-                
-                if isVisible(targetHRP) then
-                    local screenPos, onScreen = Camera:WorldToViewportPoint(targetHRP.Position)
-                    if onScreen and not isGuiBlocking(Vector2.new(screenPos.X, screenPos.Y)) then
-                        if tick() % 0.5 < 0.1 then -- Click Rate
-                            VirtualInputManager:SendMouseButtonEvent(screenPos.X, screenPos.Y, 0, true, game, 0)
-                            task.wait(0.01)
-                            VirtualInputManager:SendMouseButtonEvent(screenPos.X, screenPos.Y, 0, false, game, 0)
-                        end
-                    end
+            -- Team Check
+            if States.TeamCheckEnabled and player.Team == LocalPlayer.Team then continue end
+            
+            local targetHRP = player.Character.HumanoidRootPart
+            targetHRP.Size = Vector3.new(20, 20, 20)
+            targetHRP.Transparency = 0.5
+            targetHRP.CanCollide = false
+            
+            -- Raycast Line of Sight
+            local rayParams = RaycastParams.new()
+            rayParams.FilterDescendantsInstances = {LocalPlayer.Character, player.Character}
+            rayParams.FilterType = Enum.RaycastFilterType.Exclude
+            local result = Workspace:Raycast(Camera.CFrame.Position, (targetHRP.Position - Camera.CFrame.Position).Unit * 500, rayParams)
+            
+            if not result then -- Se não bateu em nada (visível)
+                local screenPos, onScreen = Camera:WorldToViewportPoint(targetHRP.Position)
+                if onScreen and not isPositionBlocked(Vector2.new(screenPos.X, screenPos.Y)) then
+                    VirtualInputManager:SendMouseButtonEvent(screenPos.X, screenPos.Y, 0, true, game, 0)
+                    task.wait(0.02)
+                    VirtualInputManager:SendMouseButtonEvent(screenPos.X, screenPos.Y, 0, false, game, 0)
+                    task.wait(0.1) -- Delay seguro
+                end
+            end
+        end
+    end
+end)
+
+-- Auto Collect Gun (Thread separada)
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if States.AutoCollectEnabled then
+            local gun = Workspace:FindFirstChild("Gun") or Workspace:FindFirstChild("GunDrop")
+            if gun and gun:IsA("BasePart") then
+                local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if myHRP then
+                    local oldPos = myHRP.CFrame
+                    myHRP.CFrame = gun.CFrame
+                    task.wait(0.5)
+                    myHRP.CFrame = oldPos
                 end
             end
         end
@@ -128,9 +148,9 @@ end)
 task.spawn(function()
     while true do
         task.wait(1)
-        if CursorClickEnabled then
+        if States.CursorClickEnabled then
             local pos = UserInputService:GetMouseLocation()
-            if not isGuiBlocking(pos) then
+            if not isPositionBlocked(pos) then
                 VirtualInputManager:SendMouseButtonEvent(pos.X, pos.Y, 0, true, game, 0)
                 task.wait(0.05)
                 VirtualInputManager:SendMouseButtonEvent(pos.X, pos.Y, 0, false, game, 0)
