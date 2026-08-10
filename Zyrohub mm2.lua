@@ -1,4 +1,4 @@
--- [[ ZYRO HUB - CREDITS TO GOMES.WQQ ]] --
+-- [[ ZYRO HUB V2 (PC FIX) - CREDITS TO GOMES.WQQ ]] --
 
 local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
 local Players = game:GetService("Players")
@@ -32,7 +32,7 @@ local Window = WindUI:CreateWindow({
     Size    = UDim2.fromOffset(680, 460),
     MinSize = Vector2.new(560, 350),
     MaxSize = Vector2.new(850, 560),
-    ToggleKey  = Enum.KeyCode.RightShift,
+    ToggleKey  = Enum.KeyCode.X,
     Resizable  = true,
     AutoScale  = true,
     NewElements = true,
@@ -55,12 +55,16 @@ local Window = WindUI:CreateWindow({
         Scale = 1,
         Color = ColorSequence.new(Color3.fromHex("#000000"), Color3.fromHex("#000000")),
     },
-    User = {
-        Enabled  = true,
-        Anonymous = false,
-        Callback = function() end,
-    },
 })
+
+-- Atalho global para abrir/fechar com a tecla X
+local currentKey = Enum.KeyCode.X
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == currentKey then
+        Window:Toggle()
+    end
+end)
 
 -- ==========================================
 -- ABAS
@@ -76,7 +80,6 @@ local SettingsTab     = Window:Tab({ Title = "Settings", Icon = "settings" })
 -- FUNÇÕES AUXILIARES
 -- ==========================================
 
--- Puxar Faca / Equipar Tool
 local function equipTool()
     if LocalPlayer.Character then
         local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
@@ -91,7 +94,6 @@ local function equipTool()
     end
 end
 
--- Simular clique
 local function clickTool()
     equipTool()
     task.wait(0.05)
@@ -104,7 +106,6 @@ local function clickTool()
     end
 end
 
--- Puxar Personagem para a Frente
 local function bringCharacter(targetChar)
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         if targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
@@ -114,7 +115,6 @@ local function bringCharacter(targetChar)
     end
 end
 
--- Busca o Xerife
 local function getSheriff()
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character then
@@ -126,7 +126,6 @@ local function getSheriff()
     return nil
 end
 
--- Busca o Murderer
 local function getMurderer()
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character then
@@ -169,80 +168,88 @@ CombatMurderTab:Button({
 -- 2. ABA SHERIFF
 -- ==========================================
 
-local miraMagicaActive = false
+local miraConnection = nil
 SheriffTab:Toggle({
-    Title = "Mira Mágica (Raio 300)",
+    Title = "Mira Mágica (Raio 300 - Ignora Parede)",
     Value = false,
     Callback = function(v)
-        miraMagicaActive = v
+        if miraConnection then
+            miraConnection:Disconnect()
+            miraConnection = nil
+        end
+        
+        if v then
+            miraConnection = RunService.RenderStepped:Connect(function()
+                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    local myPos = LocalPlayer.Character.HumanoidRootPart.Position
+                    local closestTarget = nil
+                    local shortestDist = 300
+
+                    for _, p in pairs(Players:GetPlayers()) do
+                        if p ~= LocalPlayer and p.Character then
+                            local chest = p.Character:FindFirstChild("UpperTorso") or p.Character:FindFirstChild("Torso")
+                            if chest then
+                                local dist = (chest.Position - myPos).Magnitude
+                                if dist <= shortestDist then
+                                    shortestDist = dist
+                                    closestTarget = chest
+                                end
+                            end
+                        end
+                    end
+
+                    if closestTarget then
+                        Camera.CFrame = CFrame.new(Camera.CFrame.Position, closestTarget.Position)
+                    end
+                end
+            end)
+        end
     end
 })
 
-RunService.RenderStepped:Connect(function()
-    if miraMagicaActive and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local myPos = LocalPlayer.Character.HumanoidRootPart.Position
-        local closestTarget = nil
-        local shortestDist = 300
-
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= player and p.Character and p.Character:FindFirstChild("UpperTorso") or (p.Character and p.Character:FindFirstChild("Torso")) then
-                local chest = p.Character:FindFirstChild("UpperTorso") or p.Character:FindFirstChild("Torso")
-                local dist = (chest.Position - myPos).Magnitude
-                if dist <= shortestDist then
-                    shortestDist = dist
-                    closestTarget = chest
-                end
-            end
-        end
-
-        if closestTarget then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, closestTarget.Position)
-        end
-    end
-end)
-
--- Auto Collect Gun
-local autoCollectActive = false
+local autoCollectTask = nil
 SheriffTab:Toggle({
     Title = "Auto Collect Gun",
     Value = false,
     Callback = function(v)
-        autoCollectActive = v
-    end
-})
+        if autoCollectTask then
+            task.cancel(autoCollectTask)
+            autoCollectTask = nil
+        end
 
--- Monitoramento da Morte do Xerife
-task.spawn(function()
-    while task.wait(0.2) do
-        if autoCollectActive then
-            local sheriff = getSheriff()
-            if sheriff and sheriff.Character and sheriff.Character:FindFirstChild("Humanoid") then
-                if sheriff.Character.Humanoid.Health <= 0 then
-                    local deathPos = sheriff.Character.HumanoidRootPart.CFrame
-                    local lastPos = LocalPlayer.Character and LocalPlayer.Character.HumanoidRootPart.CFrame
-                    
-                    if lastPos and deathPos then
-                        LocalPlayer.Character.HumanoidRootPart.CFrame = deathPos
-                        task.wait(1)
-                        LocalPlayer.Character.HumanoidRootPart.CFrame = lastPos
-                        autoCollectActive = false
+        if v then
+            autoCollectTask = task.spawn(function()
+                while true do
+                    task.wait(0.1)
+                    local sheriff = getSheriff()
+                    if sheriff and sheriff.Character and sheriff.Character:FindFirstChild("Humanoid") then
+                        if sheriff.Character.Humanoid.Health <= 0 then
+                            local deathPos = sheriff.Character.HumanoidRootPart.CFrame
+                            local lastPos = LocalPlayer.Character and LocalPlayer.Character.HumanoidRootPart.CFrame
+                            
+                            if lastPos and deathPos then
+                                LocalPlayer.Character.HumanoidRootPart.CFrame = deathPos
+                                task.wait(1)
+                                LocalPlayer.Character.HumanoidRootPart.CFrame = lastPos
+                                break
+                            end
+                        end
                     end
                 end
-            end
+            end)
         end
     end
-end)
+})
 
 -- ==========================================
 -- 3. ABA ESP
 -- ==========================================
 
-local espMurder = false
-local espSheriff = false
-
+local espConnection = nil
 local function applyHighlight(char, color)
-    if not char:FindFirstChild("ZyroHighlight") then
-        local hl = Instance.new("Highlight")
+    local hl = char:FindFirstChild("ZyroHighlight")
+    if not hl then
+        hl = Instance.new("Highlight")
         hl.Name = "ZyroHighlight"
         hl.FillColor = color
         hl.OutlineColor = Color3.fromRGB(255, 255, 255)
@@ -250,12 +257,48 @@ local function applyHighlight(char, color)
         hl.OutlineTransparency = 0
         hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
         hl.Parent = char
+    else
+        hl.FillColor = color
     end
 end
 
 local function removeHighlight(char)
-    if char:FindFirstChild("ZyroHighlight") then
+    if char and char:FindFirstChild("ZyroHighlight") then
         char.ZyroHighlight:Destroy()
+    end
+end
+
+local espMurderState = false
+local espSheriffState = false
+
+local function updateEspLoop()
+    if (espMurderState or espSheriffState) and not espConnection then
+        espConnection = RunService.RenderStepped:Connect(function()
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer and p.Character then
+                    local murder = getMurderer()
+                    local sheriff = getSheriff()
+
+                    if espMurderState and murder and p == murder then
+                        applyHighlight(p.Character, Color3.fromRGB(255, 0, 0))
+                    elseif not espMurderState and p == murder then
+                        removeHighlight(p.Character)
+                    end
+
+                    if espSheriffState and sheriff and p == sheriff then
+                        applyHighlight(p.Character, Color3.fromRGB(0, 120, 255))
+                    elseif not espSheriffState and p == sheriff then
+                        removeHighlight(p.Character)
+                    end
+                end
+            end
+        end)
+    elseif not espMurderState and not espSheriffState and espConnection then
+        espConnection:Disconnect()
+        espConnection = nil
+        for _, p in pairs(Players:GetPlayers()) do
+            if p.Character then removeHighlight(p.Character) end
+        end
     end
 end
 
@@ -263,7 +306,8 @@ EspTab:Toggle({
     Title = "ESP Murder (Vermelho)",
     Value = false,
     Callback = function(v)
-        espMurder = v
+        espMurderState = v
+        updateEspLoop()
     end
 })
 
@@ -271,34 +315,13 @@ EspTab:Toggle({
     Title = "ESP Xerife (Azul)",
     Value = false,
     Callback = function(v)
-        espSheriff = v
+        espSheriffState = v
+        updateEspLoop()
     end
 })
 
-RunService.RenderStepped:Connect(function()
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character then
-            -- ESP Murder
-            local murder = getMurderer()
-            if espMurder and murder and p == murder then
-                applyHighlight(p.Character, Color3.fromRGB(255, 0, 0))
-            elseif not espMurder and p == murder then
-                removeHighlight(p.Character)
-            end
-
-            -- ESP Sheriff
-            local sheriff = getSheriff()
-            if espSheriff and sheriff and p == sheriff then
-                applyHighlight(p.Character, Color3.fromRGB(0, 120, 255))
-            elseif not espSheriff and p == sheriff then
-                removeHighlight(p.Character)
-            end
-        end
-    end
-end)
-
 -- ==========================================
--- 4. ABA MOVEMENT
+-- 4. ABA MOVEMENT (SLIDERS FIX & PC MOUSE)
 -- ==========================================
 
 MovementTab:Slider({
@@ -306,6 +329,7 @@ MovementTab:Slider({
     Min = 16,
     Max = 200,
     Default = 16,
+    Step = 1,
     Callback = function(v)
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
             LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = v
@@ -313,25 +337,31 @@ MovementTab:Slider({
     end
 })
 
+local infJumpConnection = nil
 MovementTab:Toggle({
     Title = "Pulo Infinito",
     Value = false,
     Callback = function(v)
-        _G.InfJump = v
+        if infJumpConnection then
+            infJumpConnection:Disconnect()
+            infJumpConnection = nil
+        end
+        if v then
+            infJumpConnection = UserInputService.JumpRequest:Connect(function()
+                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+                    LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
+                end
+            end)
+        end
     end
 })
-
-UserInputService.JumpRequest:Connect(function()
-    if _G.InfJump and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-        LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
-    end
-end)
 
 MovementTab:Slider({
     Title = "Força do Pulo (JumpPower)",
     Min = 50,
     Max = 300,
     Default = 50,
+    Step = 1,
     Callback = function(v)
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
             local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
@@ -345,36 +375,51 @@ MovementTab:Slider({
 -- 5. ABA MISC
 -- ==========================================
 
+local afkConnection = nil
 MiscTab:Toggle({
     Title = "Anti AFK",
-    Value = true,
+    Value = false,
     Callback = function(v)
-        _G.AntiAfk = v
+        if afkConnection then
+            afkConnection:Disconnect()
+            afkConnection = nil
+        end
+        if v then
+            afkConnection = LocalPlayer.Idled:Connect(function()
+                local VirtualUser = game:GetService("VirtualUser")
+                VirtualUser:CaptureController()
+                VirtualUser:ClickButton2(Vector2.new(0, 0))
+            end)
+        end
     end
 })
 
--- Anti AFK Event
-LocalPlayer.Idled:Connect(function()
-    if _G.AntiAfk then
-        local VirtualUser = game:GetService("VirtualUser")
-        VirtualUser:CaptureController()
-        VirtualUser:ClickButton2(Vector2.new(0, 0))
-    end
-end)
-
--- Auto Farm (Travado 100 stud no céu)
-local autoFarmActive = false
+local skyPlatform = nil
 MiscTab:Toggle({
     Title = "Auto Farm (Sky Freeze)",
     Value = false,
     Callback = function(v)
-        autoFarmActive = v
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = LocalPlayer.Character.HumanoidRootPart
             if v then
-                LocalPlayer.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(0, 100, 0)
-                LocalPlayer.Character.HumanoidRootPart.Anchored = true
+                hrp.CFrame = hrp.CFrame + Vector3.new(0, 100, 0)
+                task.wait(0.1)
+                
+                if not skyPlatform then
+                    skyPlatform = Instance.new("Part")
+                    skyPlatform.Size = Vector3.new(15, 1, 15)
+                    skyPlatform.Anchored = true
+                    skyPlatform.Transparency = 1
+                    skyPlatform.Parent = Workspace
+                end
+                skyPlatform.CFrame = hrp.CFrame - Vector3.new(0, 3, 0)
+                hrp.Anchored = true
             else
-                LocalPlayer.Character.HumanoidRootPart.Anchored = false
+                hrp.Anchored = false
+                if skyPlatform then
+                    skyPlatform:Destroy()
+                    skyPlatform = nil
+                end
             end
         end
     end
@@ -417,8 +462,6 @@ SettingsTab:Toggle({
     end
 })
 
-local currentKey = Enum.KeyCode.RightShift
-
 SettingsTab:Keybind({
     Title = "Toggle UI Key",
     Value = currentKey,
@@ -428,8 +471,7 @@ SettingsTab:Keybind({
     end,
 })
 
--- Notify On Load
 WindUI:Notify({
-    Title = "Zyro Hub Loaded!",
-    Content = "Script executado com sucesso! Criado por gomes.wqq.",
+    Title = "Zyro Hub V2 Ready!",
+    Content = "Script atualizado e corrigido com sucesso para PC!",
 })
