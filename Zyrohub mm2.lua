@@ -1,154 +1,334 @@
--- [[ ZYRO HUB V2 | MASTER EDITION | COMPLETO & ESTÁVEL ]] --
-
-local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
+-- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 local Workspace = game:GetService("Workspace")
-local VirtualUser = game:GetService("VirtualUser")
 
 local LocalPlayer = Players.LocalPlayer
-local Camera = Workspace.CurrentCamera
-local Mouse = LocalPlayer:GetMouse()
+local Camera = workspace.CurrentCamera
 
--- Configuração da Janela (Sem botão flutuante para evitar bugs)
-local Window = WindUI:CreateWindow({
-    Title = "Zyro Hub V2 | Master Edition",
-    Author = "by gomes.wqq",
-    Folder = "zyrohub",
-    Icon = "swords",
-    Theme = "Dark",
-    ToggleKey = Enum.KeyCode.X,
-    OpenButton = { Enabled = false }, 
-})
+-- Configurações
+local RADIUS = 300
+local HITBOX_SIZE = Vector3.new(20, 20, 20)
+local Enabled = false
+local AutoCollectEnabled = false
+local TargetMurderOnly = false
 
--- Gerenciador da Tecla X
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.KeyCode == Enum.KeyCode.X then
-        Window:Toggle()
+-- Interface Principal
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "GomesDarkGUI"
+ScreenGui.ResetOnSpawn = false
+
+if gethui then
+    ScreenGui.Parent = gethui()
+elseif syn and syn.protect_gui then
+    syn.protect_gui(ScreenGui)
+    ScreenGui.Parent = game:GetService("CoreGui")
+else
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 250, 0, 210) -- Expandido para acomodar os novos seletores
+MainFrame.Position = UDim2.new(0.5, -125, 0.4, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 14, 23)
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Active = true
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainFrame
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(25, 40, 70)
+UIStroke.Thickness = 1.5
+UIStroke.Parent = MainFrame
+
+-- Top Bar (Barra de Arraste)
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Size = UDim2.new(1, 0, 0, 32)
+TopBar.BackgroundColor3 = Color3.fromRGB(16, 22, 36)
+TopBar.BorderSizePixel = 0
+TopBar.Parent = MainFrame
+
+local TopBarCorner = Instance.new("UICorner")
+TopBarCorner.CornerRadius = UDim.new(0, 10)
+TopBarCorner.Parent = TopBar
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Size = UDim2.new(1, -40, 1, 0)
+TitleLabel.Position = UDim2.new(0, 12, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "GOMES SYSTEM"
+TitleLabel.TextColor3 = Color3.fromRGB(220, 230, 255)
+TitleLabel.TextSize = 12
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.Parent = TopBar
+
+-- Botão Minimizar
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Size = UDim2.new(0, 25, 0, 25)
+MinimizeBtn.Position = UDim2.new(1, -28, 0, 3)
+MinimizeBtn.BackgroundTransparency = 1
+MinimizeBtn.Text = "-"
+MinimizeBtn.TextColor3 = Color3.fromRGB(160, 180, 210)
+MinimizeBtn.TextSize = 16
+MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.Parent = TopBar
+
+-- Função Auxiliar para Criar Switches
+local function createToggle(titleText, positionY, callback)
+    local ToggleFrame = Instance.new("Frame")
+    ToggleFrame.Size = UDim2.new(0, 226, 0, 44)
+    ToggleFrame.Position = UDim2.new(0.5, -113, 0, positionY)
+    ToggleFrame.BackgroundColor3 = Color3.fromRGB(15, 20, 32)
+    ToggleFrame.BorderSizePixel = 0
+    ToggleFrame.Parent = MainFrame
+
+    local ToggleCorner = Instance.new("UICorner")
+    ToggleCorner.CornerRadius = UDim.new(0, 8)
+    ToggleCorner.Parent = ToggleFrame
+
+    local ToggleText = Instance.new("TextLabel")
+    ToggleText.Size = UDim2.new(0, 150, 1, 0)
+    ToggleText.Position = UDim2.new(0, 10, 0, 0)
+    ToggleText.BackgroundTransparency = 1
+    ToggleText.Text = titleText
+    ToggleText.TextColor3 = Color3.fromRGB(200, 210, 235)
+    ToggleText.TextSize = 10
+    ToggleText.Font = Enum.Font.GothamMedium
+    ToggleText.TextXAlignment = Enum.TextXAlignment.Left
+    ToggleText.Parent = ToggleFrame
+
+    local SwitchBG = Instance.new("TextButton")
+    SwitchBG.Size = UDim2.new(0, 44, 0, 22)
+    SwitchBG.Position = UDim2.new(1, -52, 0.5, -11)
+    SwitchBG.BackgroundColor3 = Color3.fromRGB(30, 38, 55)
+    SwitchBG.Text = ""
+    SwitchBG.AutoButtonColor = false
+    SwitchBG.Parent = ToggleFrame
+
+    local SwitchCorner = Instance.new("UICorner")
+    SwitchCorner.CornerRadius = UDim.new(1, 0)
+    SwitchCorner.Parent = SwitchBG
+
+    local SwitchCircle = Instance.new("Frame")
+    SwitchCircle.Size = UDim2.new(0, 16, 0, 16)
+    SwitchCircle.Position = UDim2.new(0, 3, 0.5, -8)
+    SwitchCircle.BackgroundColor3 = Color3.fromRGB(110, 125, 150)
+    SwitchCircle.BorderSizePixel = 0
+    SwitchCircle.Parent = SwitchBG
+
+    local CircleCorner = Instance.new("UICorner")
+    CircleCorner.CornerRadius = UDim.new(1, 0)
+    CircleCorner.Parent = SwitchCircle
+
+    local isToggled = false
+    
+    local function setVisual(state)
+        isToggled = state
+        local targetCirclePos = isToggled and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8)
+        local targetCircleColor = isToggled and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(110, 125, 150)
+        local targetBGColor = isToggled and Color3.fromRGB(0, 140, 255) or Color3.fromRGB(30, 38, 55)
+
+        TweenService:Create(SwitchCircle, TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+            Position = targetCirclePos,
+            BackgroundColor3 = targetCircleColor
+        }):Play()
+
+        TweenService:Create(SwitchBG, TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+            BackgroundColor3 = targetBGColor
+        }):Play()
     end
+
+    SwitchBG.MouseButton1Click:Connect(function()
+        isToggled = not isToggled
+        setVisual(isToggled)
+        callback(isToggled, setVisual)
+    end)
+
+    return setVisual
+end
+
+-- Toggles da Interface
+createToggle("Hitbox 20 + Auto Click 300", 42, function(state)
+    Enabled = state
 end)
 
--- ABAS
-local CombatTab = Window:Tab({ Title = "Combat", Icon = "swords" })
-local EspTab    = Window:Tab({ Title = "ESP", Icon = "eye" })
-local MoveTab   = Window:Tab({ Title = "Movement", Icon = "move" })
-local MiscTab   = Window:Tab({ Title = "Misc", Icon = "sparkles" })
+local setAutoCollectVisual
+setAutoCollectVisual = createToggle("Auto Collect Gun (Sheriff)", 94, function(state)
+    AutoCollectEnabled = state
+end)
 
--- ==========================================
--- FUNÇÕES CORE (REESCRITAS)
--- ==========================================
+createToggle("Click Only Murderer", 146, function(state)
+    TargetMurderOnly = state
+end)
 
-local function getMurderer()
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character then
-            if p.Character:FindFirstChild("Knife") or (p:FindFirstChild("Backpack") and p.Backpack:FindFirstChild("Knife")) then
-                return p
+-- Lógica de Drag (Arrastar Janela)
+local dragging, dragInput, dragStart, startPos
+
+local function updateInput(input)
+    local delta = input.Position - dragStart
+    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+TopBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
             end
-        end
-    end
-    return nil
-end
-
-local function getSheriff()
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character then
-            if p.Character:FindFirstChild("Gun") or (p:FindFirstChild("Backpack") and p.Backpack:FindFirstChild("Gun")) then
-                return p
-            end
-        end
-    end
-    return nil
-end
-
--- ==========================================
--- COMBAT (AIMBOT)
--- ==========================================
-local aimbotEnabled = false
-CombatTab:Toggle({ Title = "Aimbot (Murderer/Sheriff)", Value = false, Callback = function(v) aimbotEnabled = v end })
-
-RunService.RenderStepped:Connect(function()
-    if aimbotEnabled then
-        local target = getMurderer() or getSheriff()
-        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.HumanoidRootPart.Position)
-        end
+        end)
     end
 end)
 
--- ==========================================
--- ESP (HIGHLIGHT)
--- ==========================================
-local espSettings = {murder = false, sheriff = false, innocent = false}
-local highlights = {}
-
-local function createHighlight(char, color)
-    local hl = Instance.new("Highlight")
-    hl.FillColor = color
-    hl.OutlineColor = Color3.new(1,1,1)
-    hl.Parent = char
-    highlights[char] = hl
-end
-
-local function cleanHighlights()
-    for _, hl in pairs(highlights) do hl:Destroy() end
-    highlights = {}
-end
-
-EspTab:Toggle({ Title = "ESP Murderer", Value = false, Callback = function(v) espSettings.murder = v end })
-EspTab:Toggle({ Title = "ESP Sheriff", Value = false, Callback = function(v) espSettings.sheriff = v end })
-
-RunService.RenderStepped:Connect(function()
-    cleanHighlights()
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character then
-            if espSettings.murder and getMurderer() == p then createHighlight(p.Character, Color3.new(1,0,0))
-            elseif espSettings.sheriff and getSheriff() == p then createHighlight(p.Character, Color3.new(0,0,1)) end
-        end
+TopBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
     end
 end)
 
--- ==========================================
--- MOVEMENT (FLY / NOCLIP / SPEED)
--- ==========================================
-local noclip = false
-MoveTab:Toggle({ Title = "Noclip (Atravessar)", Value = false, Callback = function(v) noclip = v end })
-
-RunService.Stepped:Connect(function()
-    if noclip and LocalPlayer.Character then
-        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") then part.CanCollide = false end
-        end
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        updateInput(input)
     end
 end)
 
-MoveTab:Slider({ Title = "Speed", Min = 16, Max = 150, Default = 16, Callback = function(v) 
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then LocalPlayer.Character.Humanoid.WalkSpeed = v end 
-end })
+-- Animação de Minimizar
+local isMinimized = false
+MinimizeBtn.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    local targetSize = isMinimized and UDim2.new(0, 250, 0, 32) or UDim2.new(0, 250, 0, 210)
+    
+    TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Size = targetSize
+    }):Play()
+    MinimizeBtn.Text = isMinimized and "+" or "-"
+end)
 
--- ==========================================
--- MISC (COINS / ANTI-AFK)
--- ==========================================
-local autoFarm = false
-MiscTab:Toggle({ Title = "Auto Collect Coins", Value = false, Callback = function(v) autoFarm = v end })
+-- Função para identificar se um jogador é o Murderer
+local function isMurderer(player)
+    if not player or not player.Character then return false end
+    local char = player.Character
+    
+    -- Verifica faca na mão ou no Mochila
+    if char:FindFirstChild("Knife") or (player:FindFirstChild("Backpack") and player.Backpack:FindFirstChild("Knife")) then
+        return true
+    end
+    
+    -- Fallback para verificação de ferramentas de corte padrão
+    for _, tool in ipairs(char:GetChildren()) do
+        if tool:IsA("Tool") and (tool.Name:lower():find("knife") or tool.Name:lower():find("faca")) then
+            return true
+        end
+    end
+    return false
+end
 
+-- Monitoramento Auto Collect Gun (Murders vs Sheriff)
 task.spawn(function()
     while true do
-        task.wait(1)
-        if autoFarm then
-            for _, coin in pairs(Workspace:GetDescendants()) do
-                if coin.Name == "Coin" and coin:FindFirstChild("TouchInterest") then
-                    LocalPlayer.Character.HumanoidRootPart.CFrame = coin.CFrame
+        task.wait(0.1)
+        if AutoCollectEnabled then
+            -- Procura a arma caída no mapa
+            local droppedGun = Workspace:FindFirstChild("GunDrop") or Workspace:FindFirstChild("Gun") or Workspace:FindFirstChild("GunServer")
+            if not droppedGun then
+                for _, obj in ipairs(Workspace:GetChildren()) do
+                    if obj:IsA("Tool") or obj.Name:lower():find("gun") then
+                        if not obj.Parent:FindFirstChildOfClass("Humanoid") then
+                            droppedGun = obj
+                            break
+                        end
+                    end
+                end
+            end
+
+            if droppedGun then
+                local myChar = LocalPlayer.Character
+                local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+                if myHRP then
+                    -- Salva a posição antes de se mover
+                    local savedCFrame = myHRP.CFrame
+                    local targetPos = droppedGun:IsA("BasePart") and droppedGun.CFrame or (droppedGun:FindFirstChildOfClass("BasePart") and droppedGun:FindFirstChildOfClass("BasePart").CFrame)
+
+                    if targetPos then
+                        -- Teleporta instantaneamente até a arma
+                        myHRP.CFrame = targetPos
+                        
+                        -- Aguarda 1 segundo para coleta
+                        task.wait(1)
+                        
+                        -- Retorna à posição original
+                        if myHRP then
+                            myHRP.CFrame = savedCFrame
+                        end
+                        
+                        -- Desativa a função automaticamente
+                        AutoCollectEnabled = false
+                        if setAutoCollectVisual then
+                            setAutoCollectVisual(false)
+                        end
+                    end
                 end
             end
         end
     end
 end)
 
-MiscTab:Toggle({ Title = "Anti AFK", Value = false, Callback = function(v)
-    if v then
-        LocalPlayer.Idled:Connect(function() VirtualUser:CaptureController(); VirtualUser:ClickButton2(Vector2.new()) end)
-    end
-end })
+-- Loop da Funcionalidade (Hitbox + Auto Click)
+local lastClick = 0
 
-WindUI:Notify({ Title = "Zyro Hub V2", Content = "Script Master Edition carregado. Tudo funcional!" })
+RunService.RenderStepped:Connect(function()
+    if not Enabled then return end
+    
+    local myChar = LocalPlayer.Character
+    if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return end
+    local myPos = myChar.HumanoidRootPart.Position
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local targetHRP = player.Character.HumanoidRootPart
+            
+            -- Aplica Hitbox 20
+            targetHRP.Size = HITBOX_SIZE
+            targetHRP.Transparency = 0.7
+            targetHRP.Color = Color3.fromRGB(0, 120, 255)
+            targetHRP.Material = Enum.Material.ForceField
+            targetHRP.CanCollide = false
+            
+            -- Verificação da Regra de Filtro (Murderer Apenas ou Universal)
+            local shouldClickTarget = true
+            if TargetMurderOnly then
+                shouldClickTarget = isMurderer(player)
+            end
+
+            if shouldClickTarget then
+                -- Verificação do Raio Invisível de 300
+                local distance = (targetHRP.Position - myPos).Magnitude
+                if distance <= RADIUS then
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(targetHRP.Position)
+                    
+                    if onScreen then
+                        if tick() - lastClick >= 0.08 then
+                            lastClick = tick()
+                            VirtualInputManager:SendMouseButtonEvent(screenPos.X, screenPos.Y, 0, true, game, 0)
+                            task.wait(0.01)
+                            VirtualInputManager:SendMouseButtonEvent(screenPos.X, screenPos.Y, 0, false, game, 0)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
