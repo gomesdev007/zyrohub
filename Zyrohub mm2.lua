@@ -56,6 +56,7 @@ local function IsEnemy(player)
     return true
 end
 
+-- Reseta completamente a hitbox e juntas de um jogador para o padrão do Roblox
 local function ResetPlayerHitbox(player)
     if player and player.Character then
         local char = player.Character
@@ -77,6 +78,7 @@ local function ResetPlayerHitbox(player)
     end
 end
 
+-- Limpa todos os clones gerados no Workspace
 local function CleanClones()
     for _, clone in pairs(VisualClones) do
         if clone and clone.Parent then
@@ -331,7 +333,7 @@ Tabs.Combat:AddButton({
 
 Tabs.Under:AddParagraph({
     Title = "Underplayer Mode",
-    Content = "Hotkey: R (Pressione R para entrar debaixo da terra. Pressione R novamente para voltar à superfície e restaurar tudo)."
+    Content = "Hotkey: R (Entra -7 studs debaixo da terra, congela e coloca hitbox 20 no pé dos inimigos. Pressionar R novamente desativa e restaura tudo)."
 })
 
 local UnderToggle
@@ -350,20 +352,22 @@ local function ToggleUnderplayer(state)
 
         -- Salva a posição exata da superfície ao ativar
         SurfacePosition = hrp.CFrame
+        -- Teleporta -7 studs para baixo e congela totalmente o personagem
         hrp.CFrame = SurfacePosition * CFrame.new(0, -7, 0)
         hrp.Anchored = true
 
         Fluent:Notify({ Title = "Zyro hub", Content = "Underplayer Ativado (-7 studs).", Duration = 2 })
     else
-        -- Só executa o retorno e a limpeza ao pressionar R / desativar manualmente
+        -- 1. Retorna instantaneamente para a posição original da superfície
         if SurfacePosition then
             hrp.CFrame = SurfacePosition
             SurfacePosition = nil
         end
 
+        -- 2. Descongela o personagem
         hrp.Anchored = false
 
-        -- Destroi clones e reseta hitboxes de todos os inimigos
+        -- 3. Limpeza total do Underplayer: remove clones e restaura todas as hitboxes ao estado original
         CleanClones()
 
         for _, player in pairs(Players:GetPlayers()) do
@@ -372,7 +376,7 @@ local function ToggleUnderplayer(state)
             end
         end
 
-        Fluent:Notify({ Title = "Zyro hub", Content = "Underplayer Desativado! Retornado à superfície.", Duration = 2 })
+        Fluent:Notify({ Title = "Zyro hub", Content = "Underplayer Desativado! Tudo restaurado.", Duration = 2 })
     end
 end
 
@@ -432,12 +436,12 @@ end)
 -- [[ LOOPS AND CONNECTIONS ]] --
 
 RunService.RenderStepped:Connect(function()
-    -- Apply Custom WalkSpeed
+    -- Aplicar WalkSpeed personalizado
     if WalkSpeedEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
         LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = TargetWalkSpeed
     end
 
-    -- Fly Loop
+    -- Loop do Fly
     if FlyEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local hrp = LocalPlayer.Character.HumanoidRootPart
         local camera = Workspace.CurrentCamera
@@ -456,7 +460,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- ESP Re-validation Loop
+    -- Loop do ESP
     if ESPEnabled then
         for _, player in pairs(Players:GetPlayers()) do
             if IsEnemy(player) and player.Character then
@@ -467,7 +471,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Standard Custom Hitbox Loop
+    -- Loop de Hitbox Padrão (só roda se Underplayer estiver DESATIVADO)
     if HitboxEnabled and not UnderplayerEnabled then
         for _, player in pairs(Players:GetPlayers()) do
             if IsEnemy(player) and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
@@ -485,7 +489,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Underplayer Loop
+    -- Loop do Underplayer (Apenas se ativado)
     if UnderplayerEnabled then
         for _, player in pairs(Players:GetPlayers()) do
             if IsEnemy(player) and player.Character then
@@ -494,6 +498,7 @@ RunService.RenderStepped:Connect(function()
                 local humanoid = char:FindFirstChildOfClass("Humanoid")
 
                 if hrp and humanoid and humanoid.Health > 0 then
+                    -- Aplica Hitbox Tamanho 20 estendida para o pé
                     hrp.Size = Vector3.new(20, 20, 20)
                     hrp.Transparency = 0.6
                     hrp.BrickColor = BrickColor.new("Cyan")
@@ -507,23 +512,6 @@ RunService.RenderStepped:Connect(function()
                             rootJoint.C0 = CFrame.new(0, -7, 0) * CFrame.Angles(-math.rad(90), 0, math.rad(180))
                         end
                     end
-
-                    local cloneName = "UnderClone_" .. player.Name
-                    local clonePart = Workspace:FindFirstChild(cloneName)
-
-                    if not clonePart then
-                        clonePart = Instance.new("Part")
-                        clonePart.Name = cloneName
-                        clonePart.Size = Vector3.new(2, 4, 2)
-                        clonePart.BrickColor = BrickColor.new("Bright red")
-                        clonePart.Material = Enum.Material.Neon
-                        clonePart.Anchored = true
-                        clonePart.CanCollide = false
-                        clonePart.Parent = Workspace
-                        table.insert(VisualClones, clonePart)
-                    end
-
-                    clonePart.CFrame = hrp.CFrame * CFrame.new(0, -8, 0)
                 end
             end
         end
@@ -537,7 +525,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- Hotkey Binds
+-- Atalhos de Teclado
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
 
@@ -552,11 +540,11 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- Default Initial Tab Selection
+-- Seleção inicial de aba
 Window:SelectTab(1)
 
 Fluent:Notify({
     Title = "Zyro hub",
-    Content = "Zyro Hub pronto! Tecla R alterna entrada e saída da superfície.",
+    Content = "Zyro Hub atualizado! Underplayer pronto.",
     Duration = 5
 })
