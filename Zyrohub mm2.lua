@@ -1,407 +1,367 @@
---[[
-	ZYRO HUB UNIVERSAL
-	Criador: Gomes.wqq
-	Script Simplificado e 100% Funcional
-]]
-
+-- Carregamento da Fluent UI
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
-local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
-local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
--- Services
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
+-- Serviços do Roblox
 local Players = game:GetService("Players")
-local Camera = workspace.CurrentCamera
-
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
 
-if not LocalPlayer then
-	warn("Erro: LocalPlayer não encontrado!")
-	return
-end
+-- Variáveis de Controle
+local HitboxEnabled = false
+local HitboxSize = 10
 
--- Criar Janela
+local FlyEnabled = false
+local FlySpeed = 50
+local BodyVelocity = nil
+local BodyGyro = nil
+
+local UnderplayerEnabled = false
+local OriginalPosition = nil
+local VisualClones = {}
+
+-- Criação da Janela Principal
 local Window = Fluent:CreateWindow({
-	Title = "ZYRO HUB UNIVERSAL",
-	SubTitle = "creator:@Gomes.wqq",
-	TabWidth = 160,
-	Size = UDim2.fromOffset(580, 460),
-	Acrylic = true,
-	Theme = "Light",
-	MinimizeKey = Enum.KeyCode.LeftControl
+    Title = "Zyro hub",
+    SubTitle = "creator:gomes.wqq",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = false,
+    Theme = "Light",
+    MinimizeKey = Enum.KeyCode.LeftControl
 })
 
 -- Abas
 local Tabs = {
-	Main = Window:AddTab({ Title = "Main", Icon = "zap" }),
-	Movement = Window:AddTab({ Title = "Movement", Icon = "move" }),
-	Teleport = Window:AddTab({ Title = "Teleport", Icon = "target" })
+    Main = Window:AddTab({ Title = "Movimento / Voo", Icon = "plane" }),
+    Combat = Window:AddTab({ Title = "Combate / TP", Icon = "crosshair" }),
+    Under = Window:AddTab({ Title = "Underplayer", Icon = "shield" }),
+    Settings = Window:AddTab({ Title = "Configurações", Icon = "settings" })
 }
 
-local Options = Fluent.Options
-
--- Estado das Funções
-local Features = {
-	CamLock = false,
-	InfinityJump = false,
-	JumpPower = 50,
-	Fly = false,
-	NoClip = false,
-	TPPlayer = false,
-	TPFly = false,
-}
-
-local flying = false
-local canJump = true
-
--- ========== TAB MAIN ==========
-
+-- [[ SEÇÃO: FLY (VOO) & TP UP ]] --
 Tabs.Main:AddParagraph({
-	Title = "Bem-vindo",
-	Content = "ZYRO HUB UNIVERSAL\nCriado por Gomes.wqq"
+    Title = "Sistema de Voo e Teleportes de Movimento",
+    Content = "Controles: W, A, S, D | Espaço (Subir) | Shift (Descer) | Atalhos: F (Fly) | G (TP Up +40 studs)"
 })
 
--- Cam Lock Toggle
-local CamLockToggle = Tabs.Main:AddToggle("aimbot", {
-	Title = "aimbot(z)",
-	Default = false,
-	Callback = function(Value)
-		Features.CamLock = Value
-	end
+local function ToggleFly(state)
+    FlyEnabled = state
+    local char = LocalPlayer.Character
+    if not char then return end
+
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not hrp or not humanoid then return end
+
+    if FlyEnabled then
+        BodyGyro = Instance.new("BodyGyro")
+        BodyGyro.P = 9e4
+        BodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+        BodyGyro.CFrame = hrp.CFrame
+        BodyGyro.Parent = hrp
+
+        BodyVelocity = Instance.new("BodyVelocity")
+        BodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        BodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        BodyVelocity.Parent = hrp
+
+        humanoid.PlatformStand = true
+    else
+        if BodyGyro then BodyGyro:Destroy() end
+        if BodyVelocity then BodyVelocity:Destroy() end
+        humanoid.PlatformStand = false
+    end
+end
+
+local FlyToggle = Tabs.Main:AddToggle("FlyToggle", {
+    Title = "Ativar Fly",
+    Default = false
 })
+
+FlyToggle:OnChanged(function(Value)
+    ToggleFly(Value)
+end)
+
+Tabs.Main:AddSlider("FlySpeedSlider", {
+    Title = "Velocidade do Fly",
+    Default = 50,
+    Min = 10,
+    Max = 300,
+    Rounding = 0,
+    Callback = function(Value)
+        FlySpeed = Value
+    end
+})
+
+-- Função TP Up (Subir 40 studs)
+local function TeleportUp()
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    hrp.CFrame = hrp.CFrame * CFrame.new(0, 40, 0)
+
+    Fluent:Notify({
+        Title = "Zyro hub",
+        Content = "Teleportado 40 studs para cima!",
+        Duration = 2
+    })
+end
 
 Tabs.Main:AddButton({
-	Title = "check status",
-	Description = "Check",
-	Callback = function()
-		Fluent:Notify({
-			Title = "●online",
-			Content = "on!",
-			Duration = 3
-		})
-	end
+    Title = "TP Up (+40 Studs)",
+    Description = "Subir instantaneamente 40 studs (Atalho: G)",
+    Callback = function()
+        TeleportUp()
+    end
 })
 
--- ========== TAB MOVEMENT ==========
-
--- Infinity Jump Toggle
-local InfinityJumpToggle = Tabs.Movement:AddToggle("InfinityJump", {
-	Title = "Infinity Jump [I]",
-	Default = false,
-	Callback = function(Value)
-		Features.InfinityJump = Value
-	end
+-- [[ SEÇÃO: COMBATE & HITBOX ]] --
+Tabs.Combat:AddParagraph({
+    Title = "Hitbox Customizada",
+    Content = "Aumenta a caixa de colisão dos jogadores."
 })
 
--- Jump Power Slider
-local JumpPowerSlider = Tabs.Movement:AddSlider("JumpPower", {
-	Title = "jump Power",
-	Description = "Ajust jump",
-	Default = 50,
-	Min = 10,
-	Max = 150,
-	Rounding = 1,
-	Callback = function(Value)
-		Features.JumpPower = Value
-	end
+local HitboxToggle = Tabs.Combat:AddToggle("HitboxToggle", {
+    Title = "Ativar Hitbox Customizada",
+    Default = false
 })
 
--- Fly Toggle
-local FlyToggle = Tabs.Movement:AddToggle("Fly", {
-	Title = "Fly [F]",
-	Default = false,
-	Callback = function(Value)
-		Features.Fly = Value
-	end
+HitboxToggle:OnChanged(function(Value)
+    HitboxEnabled = Value
+    if not Value then
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                player.Character.HumanoidRootPart.Size = Vector3.new(2, 2, 1)
+                player.Character.HumanoidRootPart.Transparency = 1
+                player.Character.HumanoidRootPart.CanCollide = true
+            end
+        end
+    end
+end)
+
+Tabs.Combat:AddSlider("HitboxSlider", {
+    Title = "Tamanho da Hitbox",
+    Default = 10,
+    Min = 2,
+    Max = 50,
+    Rounding = 0,
+    Callback = function(Value)
+        HitboxSize = Value
+    end
 })
 
-Tabs.Movement:AddParagraph({
-	Title = "Controls",
-	Content = "W/A/S/D - Move\nSpace - up\nCtrl -down\nF"
+-- Teleporte Inteligente para Jogador Próximo
+local function TeleportToNearestPlayer()
+    local myChar = LocalPlayer.Character
+    if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return end
+
+    local myHrp = myChar.HumanoidRootPart
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local char = player.Character
+            if char and char:IsDescendantOf(Workspace) then
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+
+                if humanoid and humanoid.Health > 0 and hrp then
+                    local distance = (myHrp.Position - hrp.Position).Magnitude
+                    if distance < shortestDistance then
+                        shortestDistance = distance
+                        closestPlayer = hrp
+                    end
+                end
+            end
+        end
+    end
+
+    if closestPlayer then
+        myHrp.CFrame = closestPlayer.CFrame * CFrame.new(0, 0, 3)
+        Fluent:Notify({ Title = "Zyro hub", Content = "Teleportado para o jogador!", Duration = 2 })
+    else
+        Fluent:Notify({ Title = "Zyro hub", Content = "Nenhum jogador válido encontrado.", Duration = 3 })
+    end
+end
+
+Tabs.Combat:AddButton({
+    Title = "Teleportar para Jogador Próximo (Atalho: T)",
+    Callback = function()
+        TeleportToNearestPlayer()
+    end
 })
 
--- No-Clip Toggle
-local NoClipToggle = Tabs.Movement:AddToggle("NoClip", {
-	Title = "No-Clip [N]",
-	Default = false,
-	Callback = function(Value)
-		Features.NoClip = Value
-	end
+-- [[ SEÇÃO: UNDERPLAYER ]] --
+Tabs.Under:AddParagraph({
+    Title = "Modo Underplayer",
+    Content = "Pressione R para entrar/sair debaixo da terra (-10 studs), congelar o personagem, ajustar a Hitbox para 20 no pé e criar clones 8 studs abaixo."
 })
 
--- ========== TAB TELEPORT ==========
+local function CleanClones()
+    for _, clone in pairs(VisualClones) do
+        if clone and clone.Parent then
+            clone:Destroy()
+        end
+    end
+    VisualClones = {}
+end
 
--- TP Player Button
-Tabs.Teleport:AddButton({
-	Title = "TP Player  [T]",
-	Description = "Teleport",
-	Callback = function()
-		TPToClosestPlayer()
-	end
+local function ToggleUnderplayer(state)
+    UnderplayerEnabled = state
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+
+    if UnderplayerEnabled then
+        OriginalPosition = hrp.CFrame
+        hrp.CFrame = hrp.CFrame * CFrame.new(0, -10, 0)
+        hrp.Anchored = true
+
+        Fluent:Notify({ Title = "Zyro hub", Content = "Underplayer Ativado! (-10 studs)", Duration = 2 })
+    else
+        hrp.Anchored = false
+        if OriginalPosition then
+            hrp.CFrame = OriginalPosition
+            OriginalPosition = nil
+        end
+        CleanClones()
+
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                player.Character.HumanoidRootPart.Size = Vector3.new(2, 2, 1)
+                player.Character.HumanoidRootPart.Transparency = 1
+            end
+        end
+
+        Fluent:Notify({ Title = "Zyro hub", Content = "Underplayer Desativado!", Duration = 2 })
+    end
+end
+
+local UnderToggle = Tabs.Under:AddToggle("UnderToggle", {
+    Title = "Ativar Underplayer (Atalho: R)",
+    Default = false
 })
 
--- TP Fly Up Button
-Tabs.Teleport:AddButton({
-	Title = "TP Fly Up beta [Y]",
-	Description = "Teleport beta",
-	Callback = function()
-		TPFlyUp()
-	end
+UnderToggle:OnChanged(function(Value)
+    if Value ~= UnderplayerEnabled then
+        ToggleUnderplayer(Value)
+    end
+end)
+
+-- [[ SEÇÃO: CONFIGURAÇÕES DE TEMA ]] --
+local ThemeDropdown = Tabs.Settings:AddDropdown("ThemeManager", {
+    Title = "Tema da Interface",
+    Values = {"Light", "Dark", "Darker", "Aqua", "Amethyst"},
+    Multi = false,
+    Default = "Light",
 })
 
-Tabs.Teleport:AddParagraph({
-	Title = "Informações",
-	Content = "T teleport success\nY - "
-})
+ThemeDropdown:OnChanged(function(Value)
+    Fluent:SetTheme(Value)
+end)
 
--- ========== IMPLEMENTAÇÃO DAS FEATURES ==========
+-- [[ LOOPS E ATALHOS ]] --
 
--- Infinity Jump
-local jumped = false
+RunService.RenderStepped:Connect(function()
+    -- Controle de Fly
+    if FlyEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = LocalPlayer.Character.HumanoidRootPart
+        local camera = Workspace.CurrentCamera
+        local moveDir = Vector3.new()
+
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0) end
+
+        if BodyVelocity and BodyGyro then
+            BodyVelocity.Velocity = moveDir * FlySpeed
+            BodyGyro.CFrame = camera.CFrame
+        end
+    end
+
+    -- Loop de Hitbox Padrão
+    if HitboxEnabled and not UnderplayerEnabled then
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local hrp = player.Character.HumanoidRootPart
+                local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+
+                if humanoid and humanoid.Health > 0 then
+                    hrp.Size = Vector3.new(HitboxSize, HitboxSize, HitboxSize)
+                    hrp.Transparency = 0.7
+                    hrp.BrickColor = BrickColor.new("Really red")
+                    hrp.Material = Enum.Material.Neon
+                    hrp.CanCollide = false
+                end
+            end
+        end
+    end
+
+    -- Loop de Underplayer
+    if UnderplayerEnabled then
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                local char = player.Character
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+
+                if hrp and humanoid and humanoid.Health > 0 then
+                    hrp.Size = Vector3.new(20, 20, 20)
+                    hrp.Transparency = 0.6
+                    hrp.BrickColor = BrickColor.new("Cyan")
+                    hrp.Material = Enum.Material.ForceField
+                    hrp.CanCollide = false
+
+                    local cloneName = "UnderClone_" .. player.Name
+                    local clonePart = Workspace:FindFirstChild(cloneName)
+
+                    if not clonePart then
+                        clonePart = Instance.new("Part")
+                        clonePart.Name = cloneName
+                        clonePart.Size = Vector3.new(2, 4, 2)
+                        clonePart.BrickColor = BrickColor.new("Bright red")
+                        clonePart.Material = Enum.Material.Neon
+                        clonePart.Anchored = true
+                        clonePart.CanCollide = false
+                        clonePart.Parent = Workspace
+                        table.insert(VisualClones, clonePart)
+                    end
+
+                    clonePart.CFrame = hrp.CFrame * CFrame.new(0, -8, 0)
+                end
+            end
+        end
+    end
+end)
+
+-- Teclas de Atalho (T: TP Player | F: Fly | R: Underplayer | G: TP Up)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
+    if gameProcessed then return end
 
-	if input.KeyCode == Enum.KeyCode.Space and Features.InfinityJump then
-		if LocalPlayer.Character then
-			local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-			local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
-			if hrp and humanoid then
-				pcall(function()
-					hrp.AssemblyLinearVelocity = Vector3.new(hrp.AssemblyLinearVelocity.X, Features.JumpPower, hrp.AssemblyLinearVelocity.Z)
-				end)
-			end
-		end
-	end
+    if input.KeyCode == Enum.KeyCode.T then
+        TeleportToNearestPlayer()
+    elseif input.KeyCode == Enum.KeyCode.F then
+        FlyToggle:SetValue(not FlyEnabled)
+    elseif input.KeyCode == Enum.KeyCode.R then
+        UnderToggle:SetValue(not UnderplayerEnabled)
+    elseif input.KeyCode == Enum.KeyCode.G then
+        TeleportUp()
+    end
 end)
 
--- Fly System Melhorado
-local function StartFly()
-	if not LocalPlayer.Character then return end
-	local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
-
-	flying = true
-	local bodyVelocity = Instance.new("BodyVelocity")
-	bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-	bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-	bodyVelocity.Parent = hrp
-
-	local bodyGyro = Instance.new("BodyGyro")
-	bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-	bodyGyro.CFrame = hrp.CFrame
-	bodyGyro.Parent = hrp
-
-	local connection
-	connection = RunService.RenderStepped:Connect(function()
-		if not Features.Fly or not hrp or not hrp.Parent then
-			connection:Disconnect()
-			pcall(function() 
-				bodyVelocity:Destroy()
-				bodyGyro:Destroy()
-			end)
-			flying = false
-			return
-		end
-
-		bodyGyro.CFrame = Camera.CFrame
-
-		local moveDirection = Vector3.new(0, 0, 0)
-		local flySpeed = 50
-
-		if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-			moveDirection = moveDirection + Camera.CFrame.LookVector
-		end
-		if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-			moveDirection = moveDirection - Camera.CFrame.LookVector
-		end
-		if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-			moveDirection = moveDirection - Camera.CFrame.RightVector
-		end
-		if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-			moveDirection = moveDirection + Camera.CFrame.RightVector
-		end
-		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-			moveDirection = moveDirection + Vector3.new(0, 1, 0)
-		end
-		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
-			moveDirection = moveDirection - Vector3.new(0, 1, 0)
-		end
-
-		if moveDirection.Magnitude > 0 then
-			bodyVelocity.Velocity = moveDirection.Unit * flySpeed
-		else
-			bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-		end
-	end)
-end
-
-RunService.RenderStepped:Connect(function()
-	if Features.Fly and not flying then
-		StartFly()
-	end
-end)
-
--- No-Clip
-RunService.RenderStepped:Connect(function()
-	if Features.NoClip and LocalPlayer.Character then
-		for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-			if part:IsA("BasePart") then
-				pcall(function()
-					part.CanCollide = false
-				end)
-			end
-		end
-	end
-end)
-
--- Cam Lock
-local function GetClosestPlayerInRadius()
-	local closestPlayer = nil
-	local closestDistance = 300
-
-	for _, player in pairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer and player.Character then
-			local targetHRP = player.Character:FindFirstChild("HumanoidRootPart")
-			local playerHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-
-			if targetHRP and playerHRP then
-				local distance = (targetHRP.Position - playerHRP.Position).Magnitude
-
-				if distance < closestDistance then
-					pcall(function()
-						local raycastParams = RaycastParams.new()
-						raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-						raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
-
-						local result = workspace:Raycast(playerHRP.Position, (targetHRP.Position - playerHRP.Position).Unit * 300, raycastParams)
-
-						if not result or (result.Instance and result.Instance:IsDescendantOf(player.Character)) then
-							closestDistance = distance
-							closestPlayer = player
-						end
-					end)
-				end
-			end
-		end
-	end
-
-	return closestPlayer
-end
-
-RunService.RenderStepped:Connect(function()
-	if Features.CamLock then
-		local target = GetClosestPlayerInRadius()
-		if target and target.Character then
-			local targetChest = target.Character:FindFirstChild("UpperTorso") or target.Character:FindFirstChild("Torso")
-			if targetChest then
-				pcall(function()
-					Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetChest.Position)
-				end)
-			end
-		end
-	end
-end)
-
--- TP Player (Click Único)
-function TPToClosestPlayer()
-	local closestPlayer = nil
-	local closestDistance = math.huge
-
-	for _, player in pairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer and player.Character then
-			local targetHRP = player.Character:FindFirstChild("HumanoidRootPart")
-			local targetHumanoid = player.Character:FindFirstChild("Humanoid")
-			local playerHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-
-			if targetHRP and playerHRP and targetHumanoid and targetHumanoid.Health > 0 then
-				local distance = (targetHRP.Position - playerHRP.Position).Magnitude
-				if distance < closestDistance then
-					closestDistance = distance
-					closestPlayer = player
-				end
-			end
-		end
-	end
-
-	if closestPlayer and closestPlayer.Character then
-		local targetHRP = closestPlayer.Character:FindFirstChild("HumanoidRootPart")
-		local playerHRP = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-		if targetHRP and playerHRP then
-			pcall(function()
-				playerHRP.CFrame = targetHRP.CFrame + Vector3.new(2, 0, 2)
-			end)
-			Fluent:Notify({
-				Title = "✅ Teleportado",
-				Content = "Você foi teleportado para " .. closestPlayer.Name,
-				Duration = 3
-			})
-		end
-	else
-		Fluent:Notify({
-			Title = "❌ Erro",
-			Content = "Nenhum player próximo encontrado",
-			Duration = 3
-		})
-	end
-end
-
--- TP Fly Up (Click Único - Teleporta uma vez +40)
-local tpFlyActive = false
-function TPFlyUp()
-	if tpFlyActive then return end
-	tpFlyActive = true
-
-	if LocalPlayer.Character then
-		local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-		if hrp then
-			pcall(function()
-				hrp.CFrame = hrp.CFrame + Vector3.new(0, 40, 0)
-			end)
-			Fluent:Notify({
-				Title = "✅ Teleportado",
-				Content = "Você foi teleportado 40 studs para cima",
-				Duration = 3
-			})
-		end
-	end
-
-	task.wait(0.5)
-	tpFlyActive = false
-end
-
--- Keybinds
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
-
-	if input.KeyCode == Enum.KeyCode.Z then
-		Features.CamLock = not Features.CamLock
-		CamLockToggle:SetValue(Features.CamLock)
-	elseif input.KeyCode == Enum.KeyCode.I then
-		Features.InfinityJump = not Features.InfinityJump
-		InfinityJumpToggle:SetValue(Features.InfinityJump)
-	elseif input.KeyCode == Enum.KeyCode.F then
-		Features.Fly = not Features.Fly
-		FlyToggle:SetValue(Features.Fly)
-	elseif input.KeyCode == Enum.KeyCode.N then
-		Features.NoClip = not Features.NoClip
-		NoClipToggle:SetValue(Features.NoClip)
-	elseif input.KeyCode == Enum.KeyCode.T then
-		TPToClosestPlayer()
-	elseif input.KeyCode == Enum.KeyCode.Y then
-		TPFlyUp()
-	end
-end)
-
--- Notificação de Carregamento
+-- Seleção da Aba Inicial
 Window:SelectTab(1)
 
 Fluent:Notify({
-	Title = "✅ ZYRO HUB UNIVERSAL",
-	Content = "Script carregado com sucesso!\nCriador: Gomes.wqq",
-	Duration = 5
+    Title = "Zyro hub",
+    Content = "Zyro Hub carregado! Atalhos: T (TP) | F (Fly) | R (Under) | G (TP Up)",
+    Duration = 5
 })
-
-print("✅ ZYRO HUB UNIVERSAL CARREGADO!")
-print("📋 Funções: Cam Lock | Infinity Jump | Fly | No-Clip | TP Player | TP Fly")
