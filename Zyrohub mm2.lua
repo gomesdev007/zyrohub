@@ -77,6 +77,21 @@ local function ResetPlayerHitbox(player)
     end
 end
 
+local function CleanClones()
+    for _, clone in pairs(VisualClones) do
+        if clone and clone.Parent then
+            clone:Destroy()
+        end
+    end
+    VisualClones = {}
+
+    for _, item in pairs(Workspace:GetChildren()) do
+        if item.Name:sub(1, 11) == "UnderClone_" then
+            item:Destroy()
+        end
+    end
+end
+
 local function ApplyHighlight(player)
     if not ESPEnabled or not IsEnemy(player) then return end
     local char = player.Character
@@ -316,17 +331,10 @@ Tabs.Combat:AddButton({
 
 Tabs.Under:AddParagraph({
     Title = "Underplayer Mode",
-    Content = "Hotkey: R (Teleports -10 studs down, freezes player, shifts size 20 hitbox down to feet)."
+    Content = "Hotkey: R (Pressione R para entrar debaixo da terra. Pressione R novamente para voltar à superfície e restaurar tudo)."
 })
 
-local function CleanClones()
-    for _, clone in pairs(VisualClones) do
-        if clone and clone.Parent then
-            clone:Destroy()
-        end
-    end
-    VisualClones = {}
-end
+local UnderToggle
 
 local function ToggleUnderplayer(state)
     UnderplayerEnabled = state
@@ -340,20 +348,22 @@ local function ToggleUnderplayer(state)
             HitboxToggle:SetValue(false)
         end
 
+        -- Salva a posição exata da superfície ao ativar
         SurfacePosition = hrp.CFrame
-        hrp.CFrame = SurfacePosition * CFrame.new(0, -10, 0)
+        hrp.CFrame = SurfacePosition * CFrame.new(0, -7, 0)
         hrp.Anchored = true
 
-        Fluent:Notify({ Title = "Zyro hub", Content = "Underplayer Enabled (-10 studs).", Duration = 2 })
+        Fluent:Notify({ Title = "Zyro hub", Content = "Underplayer Ativado (-7 studs).", Duration = 2 })
     else
-        hrp.Anchored = false
-        task.wait(0.05)
-
+        -- Só executa o retorno e a limpeza ao pressionar R / desativar manualmente
         if SurfacePosition then
             hrp.CFrame = SurfacePosition
             SurfacePosition = nil
         end
 
+        hrp.Anchored = false
+
+        -- Destroi clones e reseta hitboxes de todos os inimigos
         CleanClones()
 
         for _, player in pairs(Players:GetPlayers()) do
@@ -362,11 +372,11 @@ local function ToggleUnderplayer(state)
             end
         end
 
-        Fluent:Notify({ Title = "Zyro hub", Content = "Underplayer Disabled! Restored to surface.", Duration = 2 })
+        Fluent:Notify({ Title = "Zyro hub", Content = "Underplayer Desativado! Retornado à superfície.", Duration = 2 })
     end
 end
 
-local UnderToggle = Tabs.Under:AddToggle("UnderToggle", {
+UnderToggle = Tabs.Under:AddToggle("UnderToggle", {
     Title = "Enable Underplayer (Hotkey: R)",
     Default = false
 })
@@ -475,7 +485,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Underplayer Loop (Hitbox Size 20 shifted down to the feet + Clone -8 studs)
+    -- Underplayer Loop
     if UnderplayerEnabled then
         for _, player in pairs(Players:GetPlayers()) do
             if IsEnemy(player) and player.Character then
@@ -494,7 +504,7 @@ RunService.RenderStepped:Connect(function()
                     if lowerTorso then
                         local rootJoint = hrp:FindFirstChild("RootJoint") or lowerTorso:FindFirstChild("RootJoint")
                         if rootJoint then
-                            rootJoint.C0 = CFrame.new(0, -10, 0) * CFrame.Angles(-math.rad(90), 0, math.rad(180))
+                            rootJoint.C0 = CFrame.new(0, -7, 0) * CFrame.Angles(-math.rad(90), 0, math.rad(180))
                         end
                     end
 
@@ -547,6 +557,6 @@ Window:SelectTab(1)
 
 Fluent:Notify({
     Title = "Zyro hub",
-    Content = "Zyro Hub fully ready! Minimize Key: 'X'. Hotkeys: T (TP) | F (Fly) | R (Under) | G (TP Up)",
+    Content = "Zyro Hub pronto! Tecla R alterna entrada e saída da superfície.",
     Duration = 5
 })
