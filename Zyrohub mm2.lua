@@ -8,20 +8,25 @@ local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 
--- Variáveis de Controle
-local HitboxEnabled = false
-local HitboxSize = 10
-
+-- Variáveis de Controle: Movimento
+local TargetWalkSpeed = 16
+local InfJumpEnabled = false
 local FlyEnabled = false
 local FlySpeed = 50
 local BodyVelocity = nil
 local BodyGyro = nil
 
+-- Variáveis de Controle: Combate
+local HitboxEnabled = false
+local HitboxSize = 10
+local ESPEnabled = false
+
+-- Variáveis de Controle: Underplayer
 local UnderplayerEnabled = false
-local OriginalPosition = nil
+local SurfacePosition = nil
 local VisualClones = {}
 
--- Criação da Janela Principal
+-- Criando a Janela
 local Window = Fluent:CreateWindow({
     Title = "Zyro hub",
     SubTitle = "creator:gomes.wqq",
@@ -32,20 +37,44 @@ local Window = Fluent:CreateWindow({
     MinimizeKey = Enum.KeyCode.LeftControl
 })
 
--- Abas
+-- Criando Abas
 local Tabs = {
-    Main = Window:AddTab({ Title = "Movimento / Voo", Icon = "plane" }),
+    Main = Window:AddTab({ Title = "Movimento", Icon = "plane" }),
     Combat = Window:AddTab({ Title = "Combate / TP", Icon = "crosshair" }),
     Under = Window:AddTab({ Title = "Underplayer", Icon = "shield" }),
     Settings = Window:AddTab({ Title = "Configurações", Icon = "settings" })
 }
 
--- [[ SEÇÃO: FLY (VOO) & TP UP ]] --
+-- [[ ABA MOVIMENTO ]] --
+
 Tabs.Main:AddParagraph({
-    Title = "Sistema de Voo e Teleportes de Movimento",
-    Content = "Controles: W, A, S, D | Espaço (Subir) | Shift (Descer) | Atalhos: F (Fly) | G (TP Up +40 studs)"
+    Title = "Controles de Movimentação",
+    Content = "Atalhos: F (Fly) | G (TP Up +40 studs)"
 })
 
+-- Speed Hack
+Tabs.Main:AddSlider("WalkSpeedSlider", {
+    Title = "Velocidade de Caminhada (WalkSpeed)",
+    Default = 16,
+    Min = 16,
+    Max = 200,
+    Rounding = 0,
+    Callback = function(Value)
+        TargetWalkSpeed = Value
+    end
+})
+
+-- Pulo Infinito
+local InfJumpToggle = Tabs.Main:AddToggle("InfJumpToggle", {
+    Title = "Pulo Infinito",
+    Default = false
+})
+
+InfJumpToggle:OnChanged(function(Value)
+    InfJumpEnabled = Value
+end)
+
+-- Sistema de Fly
 local function ToggleFly(state)
     FlyEnabled = state
     local char = LocalPlayer.Character
@@ -95,7 +124,7 @@ Tabs.Main:AddSlider("FlySpeedSlider", {
     end
 })
 
--- Função TP Up (Subir 40 studs)
+-- TP Up
 local function TeleportUp()
     local char = LocalPlayer.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
@@ -112,18 +141,20 @@ end
 
 Tabs.Main:AddButton({
     Title = "TP Up (+40 Studs)",
-    Description = "Subir instantaneamente 40 studs (Atalho: G)",
+    Description = "Subir 40 studs (Atalho: G)",
     Callback = function()
         TeleportUp()
     end
 })
 
--- [[ SEÇÃO: COMBATE & HITBOX ]] --
+-- [[ ABA COMBATE / TP ]] --
+
 Tabs.Combat:AddParagraph({
-    Title = "Hitbox Customizada",
-    Content = "Aumenta a caixa de colisão dos jogadores."
+    Title = "Funções de Combate",
+    Content = "Atalho: T (Teleportar para jogador mais próximo)"
 })
 
+-- Hitbox Customizada
 local HitboxToggle = Tabs.Combat:AddToggle("HitboxToggle", {
     Title = "Ativar Hitbox Customizada",
     Default = false
@@ -153,7 +184,33 @@ Tabs.Combat:AddSlider("HitboxSlider", {
     end
 })
 
--- Teleporte Inteligente para Jogador Próximo
+-- ESP Highlight
+local ESPToggle = Tabs.Combat:AddToggle("ESPToggle", {
+    Title = "Ativar ESP (Wallhack)",
+    Default = false
+})
+
+ESPToggle:OnChanged(function(Value)
+    ESPEnabled = Value
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            if Value then
+                if not player.Character:FindFirstChild("ZyroHighlight") then
+                    local hl = Instance.new("Highlight")
+                    hl.Name = "ZyroHighlight"
+                    hl.FillColor = Color3.fromRGB(255, 0, 0)
+                    hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                    hl.Parent = player.Character
+                end
+            else
+                local hl = player.Character:FindFirstChild("ZyroHighlight")
+                if hl then hl:Destroy() end
+            end
+        end
+    end
+end)
+
+-- TP Player
 local function TeleportToNearestPlayer()
     local myChar = LocalPlayer.Character
     if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return end
@@ -195,10 +252,11 @@ Tabs.Combat:AddButton({
     end
 })
 
--- [[ SEÇÃO: UNDERPLAYER ]] --
+-- [[ ABA UNDERPLAYER ]] --
+
 Tabs.Under:AddParagraph({
     Title = "Modo Underplayer",
-    Content = "Pressione R para entrar/sair debaixo da terra (-10 studs), congelar o personagem, ajustar a Hitbox para 20 no pé e criar clones 8 studs abaixo."
+    Content = "Atalho: R (Desce -10 studs da posição da superfície e congela. Ao desativar, retorna exatamente para onde ativou)."
 })
 
 local function CleanClones()
@@ -218,19 +276,24 @@ local function ToggleUnderplayer(state)
     local hrp = char:FindFirstChild("HumanoidRootPart")
 
     if UnderplayerEnabled then
-        OriginalPosition = hrp.CFrame
-        hrp.CFrame = hrp.CFrame * CFrame.new(0, -10, 0)
+        -- Guarda a posição EXATA da superfície
+        SurfacePosition = hrp.CFrame
+        
+        -- Move 10 studs para baixo e congela
+        hrp.CFrame = SurfacePosition * CFrame.new(0, -10, 0)
         hrp.Anchored = true
 
-        Fluent:Notify({ Title = "Zyro hub", Content = "Underplayer Ativado! (-10 studs)", Duration = 2 })
+        Fluent:Notify({ Title = "Zyro hub", Content = "Underplayer Ativado! Posição salva.", Duration = 2 })
     else
+        -- Descongela e volta EXATAMENTE para o local onde foi ativado na superfície
         hrp.Anchored = false
-        if OriginalPosition then
-            hrp.CFrame = OriginalPosition
-            OriginalPosition = nil
+        if SurfacePosition then
+            hrp.CFrame = SurfacePosition
+            SurfacePosition = nil
         end
         CleanClones()
 
+        -- Restaura Hitboxes
         for _, player in pairs(Players:GetPlayers()) do
             if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
                 player.Character.HumanoidRootPart.Size = Vector3.new(2, 2, 1)
@@ -238,7 +301,7 @@ local function ToggleUnderplayer(state)
             end
         end
 
-        Fluent:Notify({ Title = "Zyro hub", Content = "Underplayer Desativado!", Duration = 2 })
+        Fluent:Notify({ Title = "Zyro hub", Content = "Underplayer Desativado! Retornado à superfície.", Duration = 2 })
     end
 end
 
@@ -253,7 +316,8 @@ UnderToggle:OnChanged(function(Value)
     end
 end)
 
--- [[ SEÇÃO: CONFIGURAÇÕES DE TEMA ]] --
+-- [[ ABA CONFIGURAÇÕES ]] --
+
 local ThemeDropdown = Tabs.Settings:AddDropdown("ThemeManager", {
     Title = "Tema da Interface",
     Values = {"Light", "Dark", "Darker", "Aqua", "Amethyst"},
@@ -268,7 +332,12 @@ end)
 -- [[ LOOPS E ATALHOS ]] --
 
 RunService.RenderStepped:Connect(function()
-    -- Controle de Fly
+    -- Aplica Velocidade Personalizada
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = TargetWalkSpeed
+    end
+
+    -- Loop do Fly
     if FlyEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local hrp = LocalPlayer.Character.HumanoidRootPart
         local camera = Workspace.CurrentCamera
@@ -305,7 +374,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Loop de Underplayer
+    -- Loop do Underplayer (Hitbox 20 no pé + Clone 8 studs abaixo)
     if UnderplayerEnabled then
         for _, player in pairs(Players:GetPlayers()) do
             if player ~= LocalPlayer and player.Character then
@@ -342,7 +411,14 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Teclas de Atalho (T: TP Player | F: Fly | R: Underplayer | G: TP Up)
+-- Pulo Infinito
+UserInputService.JumpRequest:Connect(function()
+    if InfJumpEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
+
+-- Atribuição dos Atalhos de Teclado
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
 
@@ -362,6 +438,6 @@ Window:SelectTab(1)
 
 Fluent:Notify({
     Title = "Zyro hub",
-    Content = "Zyro Hub carregado! Atalhos: T (TP) | F (Fly) | R (Under) | G (TP Up)",
+    Content = "Zyro Hub carregado! Teclas: T (TP) | F (Fly) | R (Under) | G (TP Up)",
     Duration = 5
 })
