@@ -1,212 +1,86 @@
+-- [[ GOMES HUB V2: DISPARO ÚNICO AUTOMATIZADO COM EFEITO VISUAL ]]
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local LocalPlayer = Players.LocalPlayer
 
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+local ShootRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ShootGun")
 
--- Remove versão anterior
-local oldGui = playerGui:FindFirstChild("ZyroHubAutoClickPC")
-if oldGui then
-    oldGui:Destroy()
-end
-
+-- Criação da Interface de Teste Segura
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ZyroHubAutoClickPC"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.Parent = playerGui
+ScreenGui.Name = "GmesTestGui"
+local success, err = pcall(function() ScreenGui.Parent = game:GetService("CoreGui") end)
+if not success then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
 
-local Main = Instance.new("Frame")
-Main.Name = "Main"
-Main.Size = UDim2.new(0, 230, 0, 125)
-Main.Position = UDim2.new(0.5, -115, 0.5, -62)
-Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-Main.BorderSizePixel = 0
-Main.Parent = ScreenGui
+local TestBtn = Instance.new("TextButton")
+TestBtn.Size = UDim2.new(0, 160, 0, 45)
+TestBtn.Position = UDim2.new(0.5, -80, 0.4, -22)
+TestBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+TestBtn.Text = "DISPARAR AJUSTADO"
+TestBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TestBtn.Font = Enum.Font.GothamBold
+TestBtn.TextSize = 13
+TestBtn.BorderSizePixel = 0
+TestBtn.Parent = ScreenGui
 
-local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 12)
-MainCorner.Parent = Main
+local stroke = Instance.new("UIStroke")
+stroke.Thickness = 2
+stroke.Color = Color3.fromRGB(45, 20, 70) -- Padrão Dark Purple
+stroke.Parent = TestBtn
 
-local Stroke = Instance.new("UIStroke")
-Stroke.Color = Color3.fromRGB(45, 45, 45)
-Stroke.Thickness = 1
-Stroke.Parent = Main
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 6)
+corner.Parent = TestBtn
 
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -20, 0, 30)
-Title.Position = UDim2.new(0, 10, 0, 7)
-Title.BackgroundTransparency = 1
-Title.Text = "Zyro Hub Auto Click PC"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 15
-Title.Font = Enum.Font.GothamBold
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = Main
-
---// Status
-local Status = Instance.new("TextLabel")
-Status.Size = UDim2.new(1, -20, 0, 20)
-Status.Position = UDim2.new(0, 10, 0, 35)
-Status.BackgroundTransparency = 1
-Status.Text = "Auto Click: OFF"
-Status.TextColor3 = Color3.fromRGB(160, 160, 160)
-Status.TextSize = 12
-Status.Font = Enum.Font.Gotham
-Status.TextXAlignment = Enum.TextXAlignment.Left
-Status.Parent = Main
-
---// Botão
-local Toggle = Instance.new("TextButton")
-Toggle.Size = UDim2.new(1, -20, 0, 34)
-Toggle.Position = UDim2.new(0, 10, 0, 58)
-Toggle.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
-Toggle.BorderSizePixel = 0
-Toggle.AutoButtonColor = false
-Toggle.Text = "ACTIVATE"
-Toggle.TextColor3 = Color3.fromRGB(220, 220, 220)
-Toggle.TextSize = 13
-Toggle.Font = Enum.Font.GothamBold
-Toggle.Parent = Main
-
-local ToggleCorner = Instance.new("UICorner")
-ToggleCorner.CornerRadius = UDim.new(0, 8)
-ToggleCorner.Parent = Toggle
-
---// Créditos
-local Credits = Instance.new("TextLabel")
-Credits.Size = UDim2.new(1, -20, 0, 18)
-Credits.Position = UDim2.new(0, 10, 1, -22)
-Credits.BackgroundTransparency = 1
-Credits.Text = "Creator by: gomez"
-Credits.TextColor3 = Color3.fromRGB(95, 95, 95)
-Credits.TextSize = 10
-Credits.Font = Enum.Font.Gotham
-Credits.TextXAlignment = Enum.TextXAlignment.Center
-Credits.Parent = Main
-
-local enabled = false
-local interval = 0.5
-local guiVisible = true
-
-local function IsMouseOverGui()
-    local mousePos = UserInputService:GetMouseLocation()
-
-    local guiPos = Main.AbsolutePosition
-    local guiSize = Main.AbsoluteSize
-
-    return mousePos.X >= guiPos.X
-        and mousePos.X <= guiPos.X + guiSize.X
-        and mousePos.Y >= guiPos.Y
-        and mousePos.Y <= guiPos.Y + guiSize.Y
-end
-
-local function SetAutoClick(state)
-    enabled = state
-
-    if enabled then
-        Status.Text = "Auto Click: ON"
-        Status.TextColor3 = Color3.fromRGB(80, 255, 130)
-
-        Toggle.Text = "DEACTIVATE"
-        Toggle.BackgroundColor3 = Color3.fromRGB(35, 100, 55)
-    else
-        Status.Text = "Auto Click: OFF"
-        Status.TextColor3 = Color3.fromRGB(160, 160, 160)
-
-        Toggle.Text = "ACTIVATE"
-        Toggle.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
-    end
-end
-
-Toggle.MouseButton1Click:Connect(function()
-    SetAutoClick(not enabled)
-end)
-
---// Auto Click Loop
-task.spawn(function()
-    while ScreenGui.Parent do
-        task.wait(interval)
-
-        if enabled and guiVisible and not IsMouseOverGui() then
-            -- A ação de clique pode ser colocada aqui.
-        end
-    end
-end)
-
---// Teclas X e Z
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then
-        return
-    end
-
-    if input.UserInputType == Enum.UserInputType.Keyboard then
-
-        -- X = abrir/fechar interface
-        if input.KeyCode == Enum.KeyCode.X then
-            guiVisible = not guiVisible
-            Main.Visible = guiVisible
-        end
-
-        -- Z = ativar/desativar Auto Click
-        if input.KeyCode == Enum.KeyCode.Z then
-            SetAutoClick(not enabled)
-        end
-    end
-end)
-
---// Sistema de arrastar
-local dragging = false
-local dragStart
-local startPosition
-
-local function UpdateDrag(input)
-    local delta = input.Position - dragStart
-
-    Main.Position = UDim2.new(
-        startPosition.X.Scale,
-        startPosition.X.Offset + delta.X,
-        startPosition.Y.Scale,
-        startPosition.Y.Offset + delta.Y
-    )
-end
-
-Main.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPosition = Main.Position
-
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
+-- Função para achar o alvo mais próximo
+local function getClosestEnemyPart()
+    local closestEnemy = nil
+    local shortestDistance = math.huge
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") then
+            if player.Character.Humanoid.Health > 0 then
+                local dist = (LocalPlayer.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
+                if dist < shortestDistance then
+                    shortestDistance = dist
+                    closestEnemy = player.Character:FindFirstChild("Head") or player.Character.HumanoidRootPart
+                end
             end
+        end
+    end
+    return closestEnemy
+end
+
+-- Evento de Clique
+TestBtn.MouseButton1Click:Connect(function()
+    local character = LocalPlayer.Character
+    if not character then return end
+    
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    local tool = character:FindFirstChildOfClass("Tool") -- Detecta a arma na sua mão
+    
+    if rootPart and tool then
+        local targetPart = getClosestEnemyPart()
+        local targetPos = targetPart and targetPart.Position or (rootPart.Position + rootPart.CFrame.LookVector * 50)
+        local originPos = rootPart.Position
+        
+        -- 1. Força o jogo a simular a ativação física da Tool (Gera animação/efeito na sua tela)
+        task.spawn(function()
+            tool:Activate()
         end)
-    end
-end)
-
-Main.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        UpdateDrag(input)
-    end
-end)
-
---// Animação de entrada
-Main.Size = UDim2.new(0, 210, 0, 110)
-
-task.spawn(function()
-    for i = 1, 10 do
-        Main.Size = UDim2.new(
-            0,
-            210 + (20 * (i / 10)),
-            0,
-            110 + (15 * (i / 10))
-        )
-        task.wait(0.02)
+        
+        -- 2. Envia o pacote de rede exatamente no formato esperado
+        pcall(function()
+            ShootRemote:FireServer(
+                originPos,
+                targetPos,
+                targetPart or workspace,
+                targetPos
+            )
+        end)
+        
+        print("[GOMES HUB] Disparo simulado e enviado.")
+    else
+        print("[GOMES HUB] Certifique-se de que a arma está equipada na sua mão!")
     end
 end)
