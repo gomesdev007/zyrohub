@@ -1,5 +1,6 @@
 --[[
-	XENO EXPLOIT - Fluent UI
+	ZYRO HUB UNIVERSAL
+	Criador: Gomes.wqq
 	Script Simplificado e 100% Funcional
 ]]
 
@@ -23,12 +24,12 @@ end
 
 -- Criar Janela
 local Window = Fluent:CreateWindow({
-	Title = "XENO EXPLOIT",
-	SubTitle = "by Xeno",
+	Title = "ZYRO HUB UNIVERSAL",
+	SubTitle = "by Gomes.wqq",
 	TabWidth = 160,
 	Size = UDim2.fromOffset(580, 460),
 	Acrylic = true,
-	Theme = "Dark",
+	Theme = "Light",
 	MinimizeKey = Enum.KeyCode.LeftControl
 })
 
@@ -36,18 +37,16 @@ local Window = Fluent:CreateWindow({
 local Tabs = {
 	Main = Window:AddTab({ Title = "Main", Icon = "zap" }),
 	Movement = Window:AddTab({ Title = "Movement", Icon = "move" }),
-	Teleport = Window:AddTab({ Title = "Teleport", Icon = "target" }),
-	Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+	Teleport = Window:AddTab({ Title = "Teleport", Icon = "target" })
 }
 
 local Options = Fluent.Options
 
 -- Estado das Funções
 local Features = {
-	CustomHitbox = false,
-	HitboxSize = 1,
 	CamLock = false,
-	SpeedBoost = false,
+	InfinityJump = false,
+	JumpPower = 50,
 	Fly = false,
 	NoClip = false,
 	TPPlayer = false,
@@ -55,34 +54,13 @@ local Features = {
 }
 
 local flying = false
+local canJump = true
 
 -- ========== TAB MAIN ==========
 
 Tabs.Main:AddParagraph({
 	Title = "Bem-vindo",
-	Content = "XENO EXPLOIT\nScript simplificado com Fluent UI"
-})
-
--- Custom Hitbox Toggle
-local HitboxToggle = Tabs.Main:AddToggle("CustomHitbox", {
-	Title = "Custom Hitbox",
-	Default = false,
-	Callback = function(Value)
-		Features.CustomHitbox = Value
-	end
-})
-
--- Hitbox Size Slider
-local HitboxSlider = Tabs.Main:AddSlider("HitboxSize", {
-	Title = "Tamanho do Hitbox",
-	Description = "Ajuste de 1 a 50",
-	Default = 1,
-	Min = 1,
-	Max = 50,
-	Rounding = 1,
-	Callback = function(Value)
-		Features.HitboxSize = Value
-	end
+	Content = "ZYRO HUB UNIVERSAL\nCriado por Gomes.wqq"
 })
 
 -- Cam Lock Toggle
@@ -100,7 +78,7 @@ Tabs.Main:AddButton({
 	Callback = function()
 		Fluent:Notify({
 			Title = "✅ Script Ativo",
-			Content = "XENO EXPLOIT está funcionando!",
+			Content = "ZYRO HUB UNIVERSAL está funcionando!",
 			Duration = 3
 		})
 	end
@@ -108,12 +86,25 @@ Tabs.Main:AddButton({
 
 -- ========== TAB MOVEMENT ==========
 
--- Speed Boost Toggle
-local SpeedToggle = Tabs.Movement:AddToggle("SpeedBoost", {
-	Title = "Speed Boost [V]",
+-- Infinity Jump Toggle
+local InfinityJumpToggle = Tabs.Movement:AddToggle("InfinityJump", {
+	Title = "Infinity Jump [I]",
 	Default = false,
 	Callback = function(Value)
-		Features.SpeedBoost = Value
+		Features.InfinityJump = Value
+	end
+})
+
+-- Jump Power Slider
+local JumpPowerSlider = Tabs.Movement:AddSlider("JumpPower", {
+	Title = "Velocidade do Jump",
+	Description = "Ajuste a força do salto (10 a 150)",
+	Default = 50,
+	Min = 10,
+	Max = 150,
+	Rounding = 1,
+	Callback = function(Value)
+		Features.JumpPower = Value
 	end
 })
 
@@ -128,7 +119,7 @@ local FlyToggle = Tabs.Movement:AddToggle("Fly", {
 
 Tabs.Movement:AddParagraph({
 	Title = "Controles do Fly",
-	Content = "W/A/S/D - Mover\nSpace - Subir\nCtrl - Descer"
+	Content = "W/A/S/D - Mover\nSpace - Subir\nCtrl - Descer\nF - Ativar/Desativar"
 })
 
 -- No-Clip Toggle
@@ -147,7 +138,6 @@ Tabs.Teleport:AddButton({
 	Title = "TP Player Mais Próximo [T]",
 	Description = "Teleporta para o player mais próximo",
 	Callback = function()
-		Features.TPPlayer = true
 		TPToClosestPlayer()
 	end
 })
@@ -155,64 +145,38 @@ Tabs.Teleport:AddButton({
 -- TP Fly Up Button
 Tabs.Teleport:AddButton({
 	Title = "TP Fly Up [Y]",
-	Description = "Teleporta 30 studs para cima",
+	Description = "Teleporta 40 studs para cima",
 	Callback = function()
-		Features.TPFly = true
 		TPFlyUp()
 	end
 })
 
 Tabs.Teleport:AddParagraph({
 	Title = "Informações",
-	Content = "T - Teleporta para player mais próximo\nY - Teleporta 30 studs para cima"
+	Content = "T - Teleporta para player mais próximo (Uma vez)\nY - Teleporta 40 studs para cima (Uma vez)"
 })
-
--- ========== TAB SETTINGS ==========
-
-SaveManager:SetLibrary(Fluent)
-InterfaceManager:SetLibrary(Fluent)
-
-SaveManager:IgnoreThemeSettings()
-SaveManager:SetIgnoreIndexes({})
-
-InterfaceManager:SetFolder("XenoExploit")
-SaveManager:SetFolder("XenoExploit/save")
-
-InterfaceManager:BuildInterfaceSection(Tabs.Settings)
-SaveManager:BuildConfigSection(Tabs.Settings)
 
 -- ========== IMPLEMENTAÇÃO DAS FEATURES ==========
 
--- Custom Hitbox
-RunService.RenderStepped:Connect(function()
-	if Features.CustomHitbox and LocalPlayer.Character then
-		local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-		if hrp then
-			pcall(function()
-				hrp.Size = Vector3.new(Features.HitboxSize, Features.HitboxSize, Features.HitboxSize)
-			end)
+-- Infinity Jump
+local jumped = false
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+
+	if input.KeyCode == Enum.KeyCode.Space and Features.InfinityJump then
+		if LocalPlayer.Character then
+			local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+			local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+			if hrp and humanoid then
+				pcall(function()
+					hrp.AssemblyLinearVelocity = Vector3.new(hrp.AssemblyLinearVelocity.X, Features.JumpPower, hrp.AssemblyLinearVelocity.Z)
+				end)
+			end
 		end
 	end
 end)
 
--- Speed Boost
-RunService.RenderStepped:Connect(function()
-	if Features.SpeedBoost and LocalPlayer.Character then
-		local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-		if hrp and hrp.AssemblyLinearVelocity then
-			pcall(function()
-				local vel = hrp.AssemblyLinearVelocity
-				if vel.Magnitude > 0 then
-					hrp.AssemblyLinearVelocity = vel.Unit * 30
-				else
-					hrp.AssemblyLinearVelocity = Camera.CFrame.LookVector * 30
-				end
-			end)
-		end
-	end
-end)
-
--- Fly System
+-- Fly System Melhorado
 local function StartFly()
 	if not LocalPlayer.Character then return end
 	local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -224,16 +188,27 @@ local function StartFly()
 	bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
 	bodyVelocity.Parent = hrp
 
+	local bodyGyro = Instance.new("BodyGyro")
+	bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+	bodyGyro.CFrame = hrp.CFrame
+	bodyGyro.Parent = hrp
+
 	local connection
 	connection = RunService.RenderStepped:Connect(function()
 		if not Features.Fly or not hrp or not hrp.Parent then
 			connection:Disconnect()
-			pcall(function() bodyVelocity:Destroy() end)
+			pcall(function() 
+				bodyVelocity:Destroy()
+				bodyGyro:Destroy()
+			end)
 			flying = false
 			return
 		end
 
+		bodyGyro.CFrame = Camera.CFrame
+
 		local moveDirection = Vector3.new(0, 0, 0)
+		local flySpeed = 50
 
 		if UserInputService:IsKeyDown(Enum.KeyCode.W) then
 			moveDirection = moveDirection + Camera.CFrame.LookVector
@@ -255,7 +230,7 @@ local function StartFly()
 		end
 
 		if moveDirection.Magnitude > 0 then
-			bodyVelocity.Velocity = moveDirection.Unit * 50
+			bodyVelocity.Velocity = moveDirection.Unit * flySpeed
 		else
 			bodyVelocity.Velocity = Vector3.new(0, 0, 0)
 		end
@@ -329,7 +304,7 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
--- TP Player
+-- TP Player (Click Único)
 function TPToClosestPlayer()
 	local closestPlayer = nil
 	local closestDistance = math.huge
@@ -372,21 +347,28 @@ function TPToClosestPlayer()
 	end
 end
 
--- TP Fly Up
+-- TP Fly Up (Click Único - Teleporta uma vez +40)
+local tpFlyActive = false
 function TPFlyUp()
+	if tpFlyActive then return end
+	tpFlyActive = true
+
 	if LocalPlayer.Character then
 		local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 		if hrp then
 			pcall(function()
-				hrp.CFrame = hrp.CFrame + Vector3.new(0, 30, 0)
+				hrp.CFrame = hrp.CFrame + Vector3.new(0, 40, 0)
 			end)
 			Fluent:Notify({
 				Title = "✅ Teleportado",
-				Content = "Você voou 30 studs para cima",
+				Content = "Você foi teleportado 40 studs para cima",
 				Duration = 3
 			})
 		end
 	end
+
+	task.wait(0.5)
+	tpFlyActive = false
 end
 
 -- Keybinds
@@ -396,9 +378,9 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if input.KeyCode == Enum.KeyCode.Z then
 		Features.CamLock = not Features.CamLock
 		CamLockToggle:SetValue(Features.CamLock)
-	elseif input.KeyCode == Enum.KeyCode.V then
-		Features.SpeedBoost = not Features.SpeedBoost
-		SpeedToggle:SetValue(Features.SpeedBoost)
+	elseif input.KeyCode == Enum.KeyCode.I then
+		Features.InfinityJump = not Features.InfinityJump
+		InfinityJumpToggle:SetValue(Features.InfinityJump)
 	elseif input.KeyCode == Enum.KeyCode.F then
 		Features.Fly = not Features.Fly
 		FlyToggle:SetValue(Features.Fly)
@@ -416,10 +398,10 @@ end)
 Window:SelectTab(1)
 
 Fluent:Notify({
-	Title = "✅ XENO EXPLOIT",
-	Content = "Script carregado com sucesso!\nPressione LeftControl para minimizar",
+	Title = "✅ ZYRO HUB UNIVERSAL",
+	Content = "Script carregado com sucesso!\nCriador: Gomes.wqq",
 	Duration = 5
 })
 
-print("✅ XENO EXPLOIT CARREGADO!")
-print("📋 Funções: Cam Lock | Custom Hitbox | Speed Boost | Fly | No-Clip | TP Player | TP Fly")
+print("✅ ZYRO HUB UNIVERSAL CARREGADO!")
+print("📋 Funções: Cam Lock | Infinity Jump | Fly | No-Clip | TP Player | TP Fly")
