@@ -35,7 +35,7 @@ local Window = Fluent:CreateWindow({
     Size = UDim2.fromOffset(580, 460),
     Acrylic = false,
     Theme = "Light",
-    MinimizeKey = Enum.KeyCode.LeftControl
+    MinimizeKey = Enum.KeyCode.X
 })
 
 -- Tabs
@@ -92,7 +92,7 @@ end
 
 Tabs.Main:AddParagraph({
     Title = "Movement Controls",
-    Content = "Hotkeys: F (Fly) | G (TP Up +40 studs)"
+    Content = "Hotkeys: F (Fly) | G (TP Up +40 studs) | X (Minimize UI)"
 })
 
 -- WalkSpeed Toggle
@@ -221,7 +221,7 @@ Tabs.Combat:AddParagraph({
     Content = "Hotkey: T (Teleport to nearest enemy)"
 })
 
--- Custom Hitbox
+-- Custom Hitbox Toggle
 local HitboxToggle = Tabs.Combat:AddToggle("HitboxToggle", {
     Title = "Enable Custom Hitbox",
     Default = false
@@ -312,7 +312,7 @@ Tabs.Combat:AddButton({
 
 Tabs.Under:AddParagraph({
     Title = "Underplayer Mode",
-    Content = "Hotkey: R (Teleports -10 studs under surface position and freezes. Disabling restores surface position)."
+    Content = "Hotkey: R (Teleports -10 studs under surface position, freezes and auto-disables Custom Hitbox)."
 })
 
 local function CleanClones()
@@ -332,11 +332,16 @@ local function ToggleUnderplayer(state)
     local hrp = char:FindFirstChild("HumanoidRootPart")
 
     if UnderplayerEnabled then
+        -- Automatically disable Custom Hitbox if enabled
+        if HitboxEnabled then
+            HitboxToggle:SetValue(false)
+        end
+
         SurfacePosition = hrp.CFrame
         hrp.CFrame = SurfacePosition * CFrame.new(0, -10, 0)
         hrp.Anchored = true
 
-        Fluent:Notify({ Title = "Zyro hub", Content = "Underplayer Enabled! Position saved.", Duration = 2 })
+        Fluent:Notify({ Title = "Zyro hub", Content = "Underplayer Enabled! Custom Hitbox auto-disabled.", Duration = 2 })
     else
         hrp.Anchored = false
         if SurfacePosition then
@@ -530,6 +535,6 @@ Window:SelectTab(1)
 
 Fluent:Notify({
     Title = "Zyro hub",
-    Content = "Zyro Hub loaded! Persist/Team Check Active. Hotkeys: T (TP) | F (Fly) | R (Under) | G (TP Up)",
+    Content = "Zyro Hub loaded! Toggle UI key set to 'X'. Hotkeys: T (TP) | F (Fly) | R (Under) | G (TP Up)",
     Duration = 5
 })
