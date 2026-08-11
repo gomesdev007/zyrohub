@@ -89,7 +89,6 @@ local enabled = false
 local interval = 0.5
 local guiVisible = true
 
--l
 local function IsMouseOverGui()
     local mousePos = UserInputService:GetMouseLocation()
 
@@ -124,31 +123,39 @@ Toggle.MouseButton1Click:Connect(function()
     SetAutoClick(not enabled)
 end)
 
+--// Auto Click Loop
 task.spawn(function()
     while ScreenGui.Parent do
         task.wait(interval)
 
         if enabled and guiVisible and not IsMouseOverGui() then
-
-            -
+            -- A ação de clique pode ser colocada aqui.
         end
     end
 end)
 
+--// Teclas X e Z
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then
         return
     end
 
-    if input.UserInputType == Enum.UserInputType.Keyboard
-        and input.KeyCode == Enum.KeyCode.X then
+    if input.UserInputType == Enum.UserInputType.Keyboard then
 
-        guiVisible = not guiVisible
-        Main.Visible = guiVisible
+        -- X = abrir/fechar interface
+        if input.KeyCode == Enum.KeyCode.X then
+            guiVisible = not guiVisible
+            Main.Visible = guiVisible
+        end
+
+        -- Z = ativar/desativar Auto Click
+        if input.KeyCode == Enum.KeyCode.Z then
+            SetAutoClick(not enabled)
+        end
     end
 end)
 
---// 
+--// Sistema de arrastar
 local dragging = false
 local dragStart
 local startPosition
@@ -188,6 +195,8 @@ UserInputService.InputChanged:Connect(function(input)
         UpdateDrag(input)
     end
 end)
+
+--// Animação de entrada
 Main.Size = UDim2.new(0, 210, 0, 110)
 
 task.spawn(function()
