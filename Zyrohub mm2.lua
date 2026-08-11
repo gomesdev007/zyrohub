@@ -535,6 +535,6 @@ Window:SelectTab(1)
 
 Fluent:Notify({
     Title = "Zyro hub",
-    Content = "Zyro Hub loaded! Toggle UI key set to 'X'. Hotkeys: T (TP) | F (Fly) | R (Under) | G (TP Up)",
+    Content = "Zyro Hub loaded! Toggle U key set to 'X'. Hotkeys: T (TP) | F (Fly) | R (Under) | G (TP Up)",
     Duration = 5
 })
