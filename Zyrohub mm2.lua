@@ -57,12 +57,23 @@ local function IsEnemy(player)
 end
 
 local function ResetPlayerHitbox(player)
-    if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        local hrp = player.Character.HumanoidRootPart
-        hrp.Size = Vector3.new(2, 2, 1)
-        hrp.Transparency = 1
-        hrp.CanCollide = true
-        hrp.Material = Enum.Material.Plastic
+    if player and player.Character then
+        local char = player.Character
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.Size = Vector3.new(2, 2, 1)
+            hrp.Transparency = 1
+            hrp.CanCollide = true
+            hrp.Material = Enum.Material.Plastic
+
+            local lowerTorso = char:FindFirstChild("LowerTorso") or char:FindFirstChild("Torso")
+            if lowerTorso then
+                local rootJoint = hrp:FindFirstChild("RootJoint") or lowerTorso:FindFirstChild("RootJoint")
+                if rootJoint then
+                    rootJoint.C0 = CFrame.new(0, 0, 0) * CFrame.Angles(-math.rad(90), 0, math.rad(180))
+                end
+            end
+        end
     end
 end
 
@@ -95,7 +106,6 @@ Tabs.Main:AddParagraph({
     Content = "Hotkeys: F (Fly) | G (TP Up +40 studs) | X (Minimize UI)"
 })
 
--- WalkSpeed Toggle
 local SpeedToggle = Tabs.Main:AddToggle("SpeedToggle", {
     Title = "Enable WalkSpeed",
     Default = false
@@ -121,7 +131,6 @@ Tabs.Main:AddSlider("WalkSpeedSlider", {
     end
 })
 
--- Infinite Jump Toggle
 local InfJumpToggle = Tabs.Main:AddToggle("InfJumpToggle", {
     Title = "Infinite Jump",
     Default = false
@@ -131,7 +140,6 @@ InfJumpToggle:OnChanged(function(Value)
     InfJumpEnabled = Value
 end)
 
--- Fly System
 local function ToggleFly(state)
     FlyEnabled = state
     local char = LocalPlayer.Character
@@ -191,7 +199,6 @@ Tabs.Main:AddSlider("FlySpeedSlider", {
     end
 })
 
--- TP Up
 local function TeleportUp()
     local char = LocalPlayer.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
@@ -221,7 +228,6 @@ Tabs.Combat:AddParagraph({
     Content = "Hotkey: T (Teleport to nearest enemy)"
 })
 
--- Custom Hitbox Toggle
 local HitboxToggle = Tabs.Combat:AddToggle("HitboxToggle", {
     Title = "Enable Custom Hitbox",
     Default = false
@@ -249,7 +255,6 @@ Tabs.Combat:AddSlider("HitboxSlider", {
     end
 })
 
--- ESP Highlight with Team Check
 local ESPToggle = Tabs.Combat:AddToggle("ESPToggle", {
     Title = "Enable ESP (Team Check)",
     Default = false
@@ -266,7 +271,6 @@ ESPToggle:OnChanged(function(Value)
     end
 end)
 
--- TP Player with Team Check
 local function TeleportToNearestPlayer()
     local myChar = LocalPlayer.Character
     if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return end
@@ -312,7 +316,7 @@ Tabs.Combat:AddButton({
 
 Tabs.Under:AddParagraph({
     Title = "Underplayer Mode",
-    Content = "Hotkey: R (Teleports -10 studs under surface position, freezes and auto-disables Custom Hitbox)."
+    Content = "Hotkey: R (Teleports -10 studs down, freezes player, shifts size 20 hitbox down to feet)."
 })
 
 local function CleanClones()
@@ -332,7 +336,6 @@ local function ToggleUnderplayer(state)
     local hrp = char:FindFirstChild("HumanoidRootPart")
 
     if UnderplayerEnabled then
-        -- Automatically disable Custom Hitbox if enabled
         if HitboxEnabled then
             HitboxToggle:SetValue(false)
         end
@@ -341,24 +344,25 @@ local function ToggleUnderplayer(state)
         hrp.CFrame = SurfacePosition * CFrame.new(0, -10, 0)
         hrp.Anchored = true
 
-        Fluent:Notify({ Title = "Zyro hub", Content = "Underplayer Enabled! Custom Hitbox auto-disabled.", Duration = 2 })
+        Fluent:Notify({ Title = "Zyro hub", Content = "Underplayer Enabled (-10 studs).", Duration = 2 })
     else
         hrp.Anchored = false
+        task.wait(0.05)
+
         if SurfacePosition then
             hrp.CFrame = SurfacePosition
             SurfacePosition = nil
         end
+
         CleanClones()
 
-        if not HitboxEnabled then
-            for _, player in pairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer then
-                    ResetPlayerHitbox(player)
-                end
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                ResetPlayerHitbox(player)
             end
         end
 
-        Fluent:Notify({ Title = "Zyro hub", Content = "Underplayer Disabled! Returned to surface.", Duration = 2 })
+        Fluent:Notify({ Title = "Zyro hub", Content = "Underplayer Disabled! Restored to surface.", Duration = 2 })
     end
 end
 
@@ -471,7 +475,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Underplayer Loop
+    -- Underplayer Loop (Hitbox Size 20 shifted down to the feet + Clone -8 studs)
     if UnderplayerEnabled then
         for _, player in pairs(Players:GetPlayers()) do
             if IsEnemy(player) and player.Character then
@@ -485,6 +489,14 @@ RunService.RenderStepped:Connect(function()
                     hrp.BrickColor = BrickColor.new("Cyan")
                     hrp.Material = Enum.Material.ForceField
                     hrp.CanCollide = false
+
+                    local lowerTorso = char:FindFirstChild("LowerTorso") or char:FindFirstChild("Torso")
+                    if lowerTorso then
+                        local rootJoint = hrp:FindFirstChild("RootJoint") or lowerTorso:FindFirstChild("RootJoint")
+                        if rootJoint then
+                            rootJoint.C0 = CFrame.new(0, -10, 0) * CFrame.Angles(-math.rad(90), 0, math.rad(180))
+                        end
+                    end
 
                     local cloneName = "UnderClone_" .. player.Name
                     local clonePart = Workspace:FindFirstChild(cloneName)
@@ -535,6 +547,6 @@ Window:SelectTab(1)
 
 Fluent:Notify({
     Title = "Zyro hub",
-    Content = "Zyro Hub loaded! Toggle U key set to 'X'. Hotkeys: T (TP) | F (Fly) | R (Under) | G (TP Up)",
+    Content = "Zyro Hub fully ready! Minimize Key: 'X'. Hotkeys: T (TP) | F (Fly) | R (Under) | G (TP Up)",
     Duration = 5
 })
