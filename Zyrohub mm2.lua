@@ -6,7 +6,10 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
 
 -- Control Variables: Movement
 local TargetWalkSpeed = 16
@@ -21,11 +24,22 @@ local BodyGyro = nil
 local HitboxEnabled = false
 local HitboxSize = 10
 local ESPEnabled = false
+local SilentAimEnabled = false
+local FOV_RADIUS = 340
+local PredictionFactor = 0.22
+local AimKillEnabled = false
+local AimKillCooldown = false
 
 -- Control Variables: Underplayer
 local UnderplayerEnabled = false
 local SurfacePosition = nil
 local VisualClones = {}
+
+-- Safe Remote Reference
+local ShootRemote = nil
+pcall(function()
+    ShootRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ShootGun")
+end)
 
 -- Main Window Creation
 local Window = Fluent:CreateWindow({
@@ -56,7 +70,6 @@ local function IsEnemy(player)
     return true
 end
 
--- Reseta completamente a hitbox e juntas de um jogador para o padrão do Roblox
 local function ResetPlayerHitbox(player)
     if player and player.Character then
         local char = player.Character
@@ -78,7 +91,6 @@ local function ResetPlayerHitbox(player)
     end
 end
 
--- Limpa todos os clones gerados no Workspace
 local function CleanClones()
     for _, clone in pairs(VisualClones) do
         if clone and clone.Parent then
@@ -114,6 +126,108 @@ local function RemoveHighlight(player)
         local hl = player.Character:FindFirstChild("ZyroHighlight")
         if hl then hl:Destroy() end
     end
+end
+
+-- [[ SILENT AIM FUNCTIONS ]] --
+
+local function GetClosestEnemyInFOV()
+    local closestPart = nil
+    local shortestDistance = math.huge
+    local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if IsEnemy(player) then
+            local char = player.Character
+            if char and char:FindFirstChild("Head") and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
+                local screenPos = Camera:WorldToViewportPoint(char.Head.Position)
+                local distFromCenter = (Vector2.new(screenPos.X, screenPos.Y) - center).Magnitude
+                
+                if distFromCenter <= FOV_RADIUS then
+                    if distFromCenter < shortestDistance then
+                        shortestDistance = distFromCenter
+                        closestPart = char.Head
+                    end
+                end
+            end
+        end
+    end
+    return closestPart
+end
+
+-- [[ AIM KILL FUNCTIONS ]] --
+
+local function GetClosestEnemyPart()
+    local closestEnemy = nil
+    local shortestDistance = math.huge
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if IsEnemy(player) and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") then
+            if player.Character.Humanoid.Health > 0 then
+                local dist = (LocalPlayer.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
+                if dist < shortestDistance then
+                    shortestDistance = dist
+                    closestEnemy = player.Character:FindFirstChild("Head") or player.Character.HumanoidRootPart
+                end
+            end
+        end
+    end
+    return closestEnemy
+end
+
+local function ExecuteAimKill()
+    if AimKillCooldown then return end
+    AimKillCooldown = true
+    
+    local character = LocalPlayer.Character
+    if not character then 
+        AimKillCooldown = false
+        return 
+    end
+    
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    local tool = character:FindFirstChildOfClass("Tool")
+    
+    if not rootPart or not tool then
+        Fluent:Notify({
+            Title = "Zyro hub",
+            Content = "Equipe uma arma primeiro!",
+            Duration = 2
+        })
+        AimKillCooldown = false
+        return
+    end
+    
+    local targetPart = GetClosestEnemyPart()
+    local targetPos = targetPart and targetPart.Position or (rootPart.Position + rootPart.CFrame.LookVector * 50)
+    local originPos = rootPart.Position
+    
+    -- 4 Disparos em loop (1 segundo total)
+    for i = 1, 4 do
+        task.spawn(function()
+            tool:Activate()
+        end)
+        
+        pcall(function()
+            ShootRemote:FireServer(
+                originPos,
+                targetPos,
+                targetPart or workspace,
+                targetPos
+            )
+        end)
+        
+        task.wait(0.25) -- 250ms entre disparos = 4 disparos em 1 segundo
+    end
+    
+    Fluent:Notify({
+        Title = "Zyro hub",
+        Content = "Aim Kill executado! (4x disparos)",
+        Duration = 1
+    })
+    
+    -- Libera o botão após 1 segundo total
+    task.wait(1)
+    AimKillCooldown = false
 end
 
 -- [[ MOVEMENT TAB ]] --
@@ -242,7 +356,95 @@ Tabs.Main:AddButton({
 
 Tabs.Combat:AddParagraph({
     Title = "Combat Utilities",
-    Content = "Hotkey: T (Teleport to nearest enemy)"
+    Content = "Hotkey: T (Teleport to nearest enemy) | Click para disparar"
+})
+
+-- Silent Aim Toggle
+local SilentAimToggle = Tabs.Combat:AddToggle("SilentAimToggle", {
+    Title = "Enable Silent Aim",
+    Default = false
+})
+
+SilentAimToggle:OnChanged(function(Value)
+    SilentAimEnabled = Value
+    if Value then
+        Fluent:Notify({
+            Title = "Zyro hub",
+            Content = "Silent Aim ativado! Click para disparar.",
+            Duration = 2
+        })
+    else
+        Fluent:Notify({
+            Title = "Zyro hub",
+            Content = "Silent Aim desativado.",
+            Duration = 2
+        })
+    end
+end)
+
+-- FOV Slider
+Tabs.Combat:AddSlider("FOVSlider", {
+    Title = "Silent Aim FOV",
+    Default = 340,
+    Min = 100,
+    Max = 500,
+    Rounding = 0,
+    Callback = function(Value)
+        FOV_RADIUS = Value
+    end
+})
+
+-- Prediction Slider
+Tabs.Combat:AddSlider("PredictionSlider", {
+    Title = "Silent Aim Prediction",
+    Default = 0.22,
+    Min = 0.1,
+    Max = 1.0,
+    Rounding = 2,
+    Callback = function(Value)
+        PredictionFactor = Value
+    end
+})
+
+-- Aim Kill Toggle
+local AimKillToggle = Tabs.Combat:AddToggle("AimKillToggle", {
+    Title = "Enable Aim Kill (One Click = 4x Shots)",
+    Default = false
+})
+
+AimKillToggle:OnChanged(function(Value)
+    AimKillEnabled = Value
+    if Value then
+        Fluent:Notify({
+            Title = "Zyro hub",
+            Content = "Aim Kill ativado! Click para disparar 4x.",
+            Duration = 2
+        })
+    else
+        Fluent:Notify({
+            Title = "Zyro hub",
+            Content = "Aim Kill desativado.",
+            Duration = 2
+        })
+        end
+         end
+end)
+
+-- Aim Kill Button
+Tabs.Combat:AddButton({
+    Title = "Execute Aim Kill (Hotkey: C)",
+    Description = "Click único = 4 disparos em 1 segundo",
+    Callback = function()
+        if AimKillEnabled then
+            ExecuteAimKill()
+        else
+            Fluent:Notify({
+                Title = "Zyro hub",
+                Content = "Ative Aim Kill primeiro!",
+                Duration = 2
+            })
+        end
+    end
 })
 
 local HitboxToggle = Tabs.Combat:AddToggle("HitboxToggle", {
@@ -350,24 +552,18 @@ local function ToggleUnderplayer(state)
             HitboxToggle:SetValue(false)
         end
 
-        -- Salva a posição exata da superfície ao ativar
         SurfacePosition = hrp.CFrame
-        -- Teleporta -7 studs para baixo e congela totalmente o personagem
         hrp.CFrame = SurfacePosition * CFrame.new(0, -7, 0)
         hrp.Anchored = true
 
         Fluent:Notify({ Title = "Zyro hub", Content = "Underplayer Ativado (-7 studs).", Duration = 2 })
     else
-        -- 1. Retorna instantaneamente para a posição original da superfície
         if SurfacePosition then
             hrp.CFrame = SurfacePosition
             SurfacePosition = nil
         end
 
-        -- 2. Descongela o personagem
         hrp.Anchored = false
-
-        -- 3. Limpeza total do Underplayer: remove clones e restaura todas as hitboxes ao estado original
         CleanClones()
 
         for _, player in pairs(Players:GetPlayers()) do
@@ -436,31 +632,30 @@ end)
 -- [[ LOOPS AND CONNECTIONS ]] --
 
 RunService.RenderStepped:Connect(function()
-    -- Aplicar WalkSpeed personalizado
+    -- WalkSpeed
     if WalkSpeedEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
         LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = TargetWalkSpeed
     end
 
-    -- Loop do Fly
+    -- Fly Loop
     if FlyEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local hrp = LocalPlayer.Character.HumanoidRootPart
-        local camera = Workspace.CurrentCamera
         local moveDir = Vector3.new()
 
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + camera.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - camera.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - camera.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - Camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - Camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Camera.CFrame.RightVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
         if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0) end
 
         if BodyVelocity and BodyGyro then
             BodyVelocity.Velocity = moveDir * FlySpeed
-            BodyGyro.CFrame = camera.CFrame
+            BodyGyro.CFrame = Camera.CFrame
         end
     end
 
-    -- Loop do ESP
+    -- ESP Loop
     if ESPEnabled then
         for _, player in pairs(Players:GetPlayers()) do
             if IsEnemy(player) and player.Character then
@@ -471,7 +666,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Loop de Hitbox Padrão (só roda se Underplayer estiver DESATIVADO)
+    -- Hitbox Loop
     if HitboxEnabled and not UnderplayerEnabled then
         for _, player in pairs(Players:GetPlayers()) do
             if IsEnemy(player) and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
@@ -489,7 +684,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Loop do Underplayer (Apenas se ativado)
+    -- Underplayer Loop
     if UnderplayerEnabled then
         for _, player in pairs(Players:GetPlayers()) do
             if IsEnemy(player) and player.Character then
@@ -498,7 +693,6 @@ RunService.RenderStepped:Connect(function()
                 local humanoid = char:FindFirstChildOfClass("Humanoid")
 
                 if hrp and humanoid and humanoid.Health > 0 then
-                    -- Aplica Hitbox Tamanho 20 estendida para o pé
                     hrp.Size = Vector3.new(20, 20, 20)
                     hrp.Transparency = 0.6
                     hrp.BrickColor = BrickColor.new("Cyan")
@@ -518,17 +712,44 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Infinite Jump Request
+-- Infinite Jump
 UserInputService.JumpRequest:Connect(function()
     if InfJumpEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
         LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
     end
 end)
 
--- Atalhos de Teclado
+-- Silent Aim - Disparo ao clicar
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
 
+    -- Silent Aim Logic
+    if SilentAimEnabled and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+        local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not myRoot then return end
+        
+        local targetPart = GetClosestEnemyInFOV()
+        
+        if targetPart and ShootRemote then
+            local targetPos = targetPart.Position
+            local targetChar = targetPart.Parent
+            
+            if targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
+                targetPos = targetPos + (targetChar.HumanoidRootPart.Velocity * PredictionFactor)
+            end
+            
+            pcall(function()
+                ShootRemote:FireServer(
+                    myRoot.Position,
+                    targetPos,
+                    targetPart,
+                    targetPos
+                )
+            end)
+        end
+    end
+
+    -- Hotkeys
     if input.KeyCode == Enum.KeyCode.T then
         TeleportToNearestPlayer()
     elseif input.KeyCode == Enum.KeyCode.F then
@@ -537,14 +758,18 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         UnderToggle:SetValue(not UnderplayerEnabled)
     elseif input.KeyCode == Enum.KeyCode.G then
         TeleportUp()
+    elseif input.KeyCode == Enum.KeyCode.C then
+        if AimKillEnabled then
+            ExecuteAimKill()
+        end
     end
 end)
 
--- Seleção inicial de aba
+-- Initial Tab
 Window:SelectTab(1)
 
 Fluent:Notify({
     Title = "Zyro hub",
-    Content = "Zyro Hub atualizado! Underplayer pronto.",
+    Content = "Zyro Hub com Silent Aim + Aim Kill carregado!",
     Duration = 5
 })
