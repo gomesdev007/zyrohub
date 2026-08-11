@@ -46,7 +46,15 @@ local Tabs = {
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
 
--- [[ HELPER FUNCTIONS FOR RESETTING INDIVIDUAL STATES ]] --
+-- [[ HELPER FUNCTIONS ]] --
+
+local function IsEnemy(player)
+    if not player or player == LocalPlayer then return false end
+    if player.Team and LocalPlayer.Team and player.Team == LocalPlayer.Team then
+        return false
+    end
+    return true
+end
 
 local function ResetPlayerHitbox(player)
     if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
@@ -55,6 +63,28 @@ local function ResetPlayerHitbox(player)
         hrp.Transparency = 1
         hrp.CanCollide = true
         hrp.Material = Enum.Material.Plastic
+    end
+end
+
+local function ApplyHighlight(player)
+    if not ESPEnabled or not IsEnemy(player) then return end
+    local char = player.Character
+    if char then
+        local hl = char:FindFirstChild("ZyroHighlight")
+        if not hl then
+            hl = Instance.new("Highlight")
+            hl.Name = "ZyroHighlight"
+            hl.FillColor = Color3.fromRGB(255, 0, 0)
+            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+            hl.Parent = char
+        end
+    end
+end
+
+local function RemoveHighlight(player)
+    if player and player.Character then
+        local hl = player.Character:FindFirstChild("ZyroHighlight")
+        if hl then hl:Destroy() end
     end
 end
 
@@ -112,16 +142,20 @@ local function ToggleFly(state)
     if not hrp or not humanoid then return end
 
     if FlyEnabled then
-        BodyGyro = Instance.new("BodyGyro")
-        BodyGyro.P = 9e4
-        BodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-        BodyGyro.CFrame = hrp.CFrame
-        BodyGyro.Parent = hrp
+        if not BodyGyro then
+            BodyGyro = Instance.new("BodyGyro")
+            BodyGyro.P = 9e4
+            BodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+            BodyGyro.CFrame = hrp.CFrame
+            BodyGyro.Parent = hrp
+        end
 
-        BodyVelocity = Instance.new("BodyVelocity")
-        BodyVelocity.Velocity = Vector3.new(0, 0, 0)
-        BodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-        BodyVelocity.Parent = hrp
+        if not BodyVelocity then
+            BodyVelocity = Instance.new("BodyVelocity")
+            BodyVelocity.Velocity = Vector3.new(0, 0, 0)
+            BodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+            BodyVelocity.Parent = hrp
+        end
 
         humanoid.PlatformStand = true
     else
@@ -184,7 +218,7 @@ Tabs.Main:AddButton({
 
 Tabs.Combat:AddParagraph({
     Title = "Combat Utilities",
-    Content = "Hotkey: T (Teleport to nearest player)"
+    Content = "Hotkey: T (Teleport to nearest enemy)"
 })
 
 -- Custom Hitbox
@@ -215,33 +249,24 @@ Tabs.Combat:AddSlider("HitboxSlider", {
     end
 })
 
--- ESP Highlight
+-- ESP Highlight with Team Check
 local ESPToggle = Tabs.Combat:AddToggle("ESPToggle", {
-    Title = "Enable ESP (Wallhack)",
+    Title = "Enable ESP (Team Check)",
     Default = false
 })
 
 ESPToggle:OnChanged(function(Value)
     ESPEnabled = Value
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            if Value then
-                if not player.Character:FindFirstChild("ZyroHighlight") then
-                    local hl = Instance.new("Highlight")
-                    hl.Name = "ZyroHighlight"
-                    hl.FillColor = Color3.fromRGB(255, 0, 0)
-                    hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-                    hl.Parent = player.Character
-                end
-            else
-                local hl = player.Character:FindFirstChild("ZyroHighlight")
-                if hl then hl:Destroy() end
-            end
+        if Value then
+            ApplyHighlight(player)
+        else
+            RemoveHighlight(player)
         end
     end
 end)
 
--- TP Player
+-- TP Player with Team Check
 local function TeleportToNearestPlayer()
     local myChar = LocalPlayer.Character
     if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return end
@@ -251,7 +276,7 @@ local function TeleportToNearestPlayer()
     local shortestDistance = math.huge
 
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
+        if IsEnemy(player) then
             local char = player.Character
             if char and char:IsDescendantOf(Workspace) then
                 local humanoid = char:FindFirstChildOfClass("Humanoid")
@@ -270,14 +295,14 @@ local function TeleportToNearestPlayer()
 
     if closestPlayer then
         myHrp.CFrame = closestPlayer.CFrame * CFrame.new(0, 0, 3)
-        Fluent:Notify({ Title = "Zyro hub", Content = "Teleported to nearest player!", Duration = 2 })
+        Fluent:Notify({ Title = "Zyro hub", Content = "Teleported to nearest enemy!", Duration = 2 })
     else
-        Fluent:Notify({ Title = "Zyro hub", Content = "No valid player found.", Duration = 3 })
+        Fluent:Notify({ Title = "Zyro hub", Content = "No valid enemy found.", Duration = 3 })
     end
 end
 
 Tabs.Combat:AddButton({
-    Title = "Teleport to Nearest Player (Hotkey: T)",
+    Title = "Teleport to Nearest Enemy (Hotkey: T)",
     Callback = function()
         TeleportToNearestPlayer()
     end
@@ -287,7 +312,7 @@ Tabs.Combat:AddButton({
 
 Tabs.Under:AddParagraph({
     Title = "Underplayer Mode",
-    Content = "Hotkey: R (Teleports -10 studs under original surface position and freezes. Disabling restores surface position independently)."
+    Content = "Hotkey: R (Teleports -10 studs under surface position and freezes. Disabling restores surface position)."
 })
 
 local function CleanClones()
@@ -320,7 +345,6 @@ local function ToggleUnderplayer(state)
         end
         CleanClones()
 
-        -- Restore hitboxes ONLY IF Custom Hitbox isn't actively enabled
         if not HitboxEnabled then
             for _, player in pairs(Players:GetPlayers()) do
                 if player ~= LocalPlayer then
@@ -357,6 +381,35 @@ ThemeDropdown:OnChanged(function(Value)
     Fluent:SetTheme(Value)
 end)
 
+-- [[ RESPAWN & CHARACTER MANAGEMENT ]] --
+
+local function BindCharacterEvents(player)
+    player.CharacterAdded:Connect(function(char)
+        char:WaitForChild("Humanoid")
+        char:WaitForChild("HumanoidRootPart")
+
+        task.wait(0.5)
+
+        if player == LocalPlayer then
+            if FlyEnabled then
+                ToggleFly(true)
+            end
+        else
+            if ESPEnabled then
+                ApplyHighlight(player)
+            end
+        end
+    end)
+end
+
+for _, player in pairs(Players:GetPlayers()) do
+    BindCharacterEvents(player)
+end
+
+Players.PlayerAdded:Connect(function(player)
+    BindCharacterEvents(player)
+end)
+
 -- [[ LOOPS AND CONNECTIONS ]] --
 
 RunService.RenderStepped:Connect(function()
@@ -384,10 +437,21 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Standard Custom Hitbox Loop (Runs only when Underplayer is OFF)
+    -- ESP Re-validation Loop
+    if ESPEnabled then
+        for _, player in pairs(Players:GetPlayers()) do
+            if IsEnemy(player) and player.Character then
+                ApplyHighlight(player)
+            else
+                RemoveHighlight(player)
+            end
+        end
+    end
+
+    -- Standard Custom Hitbox Loop
     if HitboxEnabled and not UnderplayerEnabled then
         for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            if IsEnemy(player) and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
                 local hrp = player.Character.HumanoidRootPart
                 local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
 
@@ -402,10 +466,10 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Underplayer Loop (Overrides hitbox to 20 + Visual Clone -8 studs)
+    -- Underplayer Loop
     if UnderplayerEnabled then
         for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character then
+            if IsEnemy(player) and player.Character then
                 local char = player.Character
                 local hrp = char:FindFirstChild("HumanoidRootPart")
                 local humanoid = char:FindFirstChildOfClass("Humanoid")
@@ -466,6 +530,6 @@ Window:SelectTab(1)
 
 Fluent:Notify({
     Title = "Zyro hub",
-    Content = "Zyro Hub loaded! Independent function toggles active. Hotkeys: T (TP) | F (Fly) | R (Under) | G (TP Up)",
+    Content = "Zyro Hub loaded! Persist/Team Check Active. Hotkeys: T (TP) | F (Fly) | R (Under) | G (TP Up)",
     Duration = 5
 })
