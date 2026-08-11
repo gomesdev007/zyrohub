@@ -1,142 +1,136 @@
--- Fluent UI Loader
-local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
-
--- Roblox Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local VirtualInputManager = game:GetService("VirtualInputManager")
+local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
-local Camera = Workspace.CurrentCamera
 
--- Control Variables: Movement
-local TargetWalkSpeed = 16
-local WalkSpeedEnabled = false
-local InfJumpEnabled = false
-local FlyEnabled = false
-local FlySpeed = 50
-local BodyVelocity = nil
-local BodyGyro = nil
+-- ============================================================
+-- CORES E ESTILOS
+-- ============================================================
+local BG_COLOR = Color3.fromRGB(12, 8, 20)
+local PURPLE_NEON = Color3.fromRGB(130, 40, 255)
+local OFF_COLOR = Color3.fromRGB(60, 60, 60)
+local BUTTON_COLOR = Color3.fromRGB(30, 25, 40)
+local STROKE_COLOR = Color3.fromRGB(18, 12, 30)
 
--- Control Variables: Combat
-local HitboxEnabled = false
-local HitboxSize = 10
-local ESPEnabled = false
-local SilentAimEnabled = false
-local FOV_RADIUS = 340
-local PredictionFactor = 0.22
-local AimKillEnabled = false
-local AimKillCooldown = false
+-- ============================================================
+-- GUI PRINCIPAL
+-- ============================================================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "GomesHubCombat"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- Control Variables: Underplayer
-local UnderplayerEnabled = false
-local SurfacePosition = nil
-local VisualClones = {}
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 280, 0, 180)
+MainFrame.Position = UDim2.new(1, -300, 0, 30)
+MainFrame.BackgroundColor3 = BG_COLOR
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
 
--- Safe Remote Reference
-local ShootRemote = nil
-pcall(function()
-    ShootRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ShootGun")
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = STROKE_COLOR
+MainStroke.Thickness = 2
+MainStroke.Parent = MainFrame
+
+-- Título
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Size = UDim2.new(1, -40, 0, 25)
+TitleLabel.Position = UDim2.new(0, 10, 0, 8)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "GOMES HUB - COMBAT"
+TitleLabel.TextColor3 = PURPLE_NEON
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextSize = 12
+TitleLabel.Parent = MainFrame
+
+-- Botão de Minimizar
+local isMinimized = false
+local MinButton = Instance.new("TextButton")
+MinButton.Size = UDim2.new(0, 30, 0, 25)
+MinButton.Position = UDim2.new(1, -35, 0, 8)
+MinButton.BackgroundColor3 = BUTTON_COLOR
+MinButton.Text = "-"
+MinButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinButton.Font = Enum.Font.GothamBold
+MinButton.TextSize = 18
+MinButton.BorderSizePixel = 0
+MinButton.Parent = MainFrame
+
+local MinStroke = Instance.new("UIStroke")
+MinStroke.Color = STROKE_COLOR
+MinStroke.Thickness = 1
+MinStroke.Parent = MinButton
+
+MinButton.MouseButton1Down:Connect(function()
+    isMinimized = not isMinimized
+    local targetSize = isMinimized and UDim2.new(0, 60, 0, 40) or UDim2.new(0, 280, 0, 180)
+    MinButton.Text = isMinimized and "+" or "-"
+    
+    TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {Size = targetSize}):Play()
 end)
 
--- Main Window Creation
-local Window = Fluent:CreateWindow({
-    Title = "Zyro hub",
-    SubTitle = "creator:gomes.wqq",
-    TabWidth = 160,
-    Size = UDim2.fromOffset(580, 460),
-    Acrylic = false,
-    Theme = "Light",
-    MinimizeKey = Enum.KeyCode.X
-})
+-- Container para Botões
+local ButtonContainer = Instance.new("Frame")
+ButtonContainer.Size = UDim2.new(1, -20, 1, -45)
+ButtonContainer.Position = UDim2.new(0, 10, 0, 40)
+ButtonContainer.BackgroundTransparency = 1
+ButtonContainer.Parent = MainFrame
 
--- Tabs
-local Tabs = {
-    Main = Window:AddTab({ Title = "Movement", Icon = "plane" }),
-    Combat = Window:AddTab({ Title = "Combat / TP", Icon = "crosshair" }),
-    Under = Window:AddTab({ Title = "Underplayer", Icon = "shield" }),
-    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
-}
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Padding = UDim.new(0, 10)
+UIListLayout.FillDirection = Enum.FillDirection.Vertical
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Parent = ButtonContainer
 
--- [[ HELPER FUNCTIONS ]] --
+-- ============================================================
+-- FUNÇÕES AUXILIARES
+-- ============================================================
 
-local function IsEnemy(player)
-    if not player or player == LocalPlayer then return false end
-    if player.Team and LocalPlayer.Team and player.Team == LocalPlayer.Team then
-        return false
-    end
-    return true
+local function createButton(name, text, layoutOrder)
+    local Button = Instance.new("TextButton")
+    Button.Size = UDim2.new(1, 0, 0, 35)
+    Button.BackgroundColor3 = OFF_COLOR
+    Button.Text = text
+    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Button.Font = Enum.Font.GothamBold
+    Button.TextSize = 11
+    Button.BorderSizePixel = 0
+    Button.LayoutOrder = layoutOrder
+    Button.Parent = ButtonContainer
+    Button.Name = name
+    
+    local ButtonStroke = Instance.new("UIStroke")
+    ButtonStroke.Color = STROKE_COLOR
+    ButtonStroke.Thickness = 1
+    ButtonStroke.Parent = Button
+    
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 4)
+    Corner.Parent = Button
+    
+    return Button, ButtonStroke
 end
 
-local function ResetPlayerHitbox(player)
-    if player and player.Character then
-        local char = player.Character
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            hrp.Size = Vector3.new(2, 2, 1)
-            hrp.Transparency = 1
-            hrp.CanCollide = true
-            hrp.Material = Enum.Material.Plastic
+-- ============================================================
+-- SILENT AIM - BOTÃO COM TOGGLE
+-- ============================================================
+local silentAimEnabled = false
+local FOV_RADIUS = 340
+local PredictionFactor = 0.22
+local ShootRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ShootGun")
 
-            local lowerTorso = char:FindFirstChild("LowerTorso") or char:FindFirstChild("Torso")
-            if lowerTorso then
-                local rootJoint = hrp:FindFirstChild("RootJoint") or lowerTorso:FindFirstChild("RootJoint")
-                if rootJoint then
-                    rootJoint.C0 = CFrame.new(0, 0, 0) * CFrame.Angles(-math.rad(90), 0, math.rad(180))
-                end
-            end
-        end
-    end
-end
-
-local function CleanClones()
-    for _, clone in pairs(VisualClones) do
-        if clone and clone.Parent then
-            clone:Destroy()
-        end
-    end
-    VisualClones = {}
-
-    for _, item in pairs(Workspace:GetChildren()) do
-        if item.Name:sub(1, 11) == "UnderClone_" then
-            item:Destroy()
-        end
-    end
-end
-
-local function ApplyHighlight(player)
-    if not ESPEnabled or not IsEnemy(player) then return end
-    local char = player.Character
-    if char then
-        local hl = char:FindFirstChild("ZyroHighlight")
-        if not hl then
-            hl = Instance.new("Highlight")
-            hl.Name = "ZyroHighlight"
-            hl.FillColor = Color3.fromRGB(255, 0, 0)
-            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-            hl.Parent = char
-        end
-    end
-end
-
-local function RemoveHighlight(player)
-    if player and player.Character then
-        local hl = player.Character:FindFirstChild("ZyroHighlight")
-        if hl then hl:Destroy() end
-    end
-end
-
--- [[ SILENT AIM FUNCTIONS ]] --
-
-local function GetClosestEnemyInFOV()
+local function getClosestEnemy()
     local closestPart = nil
     local shortestDistance = math.huge
     local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 
     for _, player in pairs(Players:GetPlayers()) do
-        if IsEnemy(player) then
+        if player ~= LocalPlayer and player.Team ~= LocalPlayer.Team then
             local char = player.Character
             if char and char:FindFirstChild("Head") and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
                 local screenPos = Camera:WorldToViewportPoint(char.Head.Position)
@@ -154,583 +148,33 @@ local function GetClosestEnemyInFOV()
     return closestPart
 end
 
--- [[ AIM KILL FUNCTIONS ]] --
+local SilentAimButton, SilentAimStroke = createButton("SilentAim", "SILENT AIM [OFF]", 1)
 
-local function GetClosestEnemyPart()
-    local closestEnemy = nil
-    local shortestDistance = math.huge
-    
-    for _, player in pairs(Players:GetPlayers()) do
-        if IsEnemy(player) and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") then
-            if player.Character.Humanoid.Health > 0 then
-                local dist = (LocalPlayer.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
-                if dist < shortestDistance then
-                    shortestDistance = dist
-                    closestEnemy = player.Character:FindFirstChild("Head") or player.Character.HumanoidRootPart
-                end
-            end
-        end
-    end
-    return closestEnemy
-end
-
-local function ExecuteAimKill()
-    if AimKillCooldown then return end
-    AimKillCooldown = true
-    
-    local character = LocalPlayer.Character
-    if not character then 
-        AimKillCooldown = false
-        return 
-    end
-    
-    local rootPart = character:FindFirstChild("HumanoidRootPart")
-    local tool = character:FindFirstChildOfClass("Tool")
-    
-    if not rootPart or not tool then
-        Fluent:Notify({
-            Title = "Zyro hub",
-            Content = "Equipe uma arma primeiro!",
-            Duration = 2
-        })
-        AimKillCooldown = false
-        return
-    end
-    
-    local targetPart = GetClosestEnemyPart()
-    local targetPos = targetPart and targetPart.Position or (rootPart.Position + rootPart.CFrame.LookVector * 50)
-    local originPos = rootPart.Position
-    
-    -- 4 Disparos em loop (1 segundo total)
-    for i = 1, 4 do
-        task.spawn(function()
-            tool:Activate()
-        end)
-        
-        pcall(function()
-            ShootRemote:FireServer(
-                originPos,
-                targetPos,
-                targetPart or workspace,
-                targetPos
-            )
-        end)
-        
-        task.wait(0.25) -- 250ms entre disparos = 4 disparos em 1 segundo
-    end
-    
-    Fluent:Notify({
-        Title = "Zyro hub",
-        Content = "Aim Kill executado! (4x disparos)",
-        Duration = 1
-    })
-    
-    -- Libera o botão após 1 segundo total
-    task.wait(1)
-    AimKillCooldown = false
-end
-
--- [[ MOVEMENT TAB ]] --
-
-Tabs.Main:AddParagraph({
-    Title = "Movement Controls",
-    Content = "Hotkeys: F (Fly) | G (TP Up +40 studs) | X (Minimize UI)"
-})
-
-local SpeedToggle = Tabs.Main:AddToggle("SpeedToggle", {
-    Title = "Enable WalkSpeed",
-    Default = false
-})
-
-SpeedToggle:OnChanged(function(Value)
-    WalkSpeedEnabled = Value
-    if not Value then
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-            LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = 16
-        end
-    end
-end)
-
-Tabs.Main:AddSlider("WalkSpeedSlider", {
-    Title = "WalkSpeed Value",
-    Default = 16,
-    Min = 16,
-    Max = 200,
-    Rounding = 0,
-    Callback = function(Value)
-        TargetWalkSpeed = Value
-    end
-})
-
-local InfJumpToggle = Tabs.Main:AddToggle("InfJumpToggle", {
-    Title = "Infinite Jump",
-    Default = false
-})
-
-InfJumpToggle:OnChanged(function(Value)
-    InfJumpEnabled = Value
-end)
-
-local function ToggleFly(state)
-    FlyEnabled = state
-    local char = LocalPlayer.Character
-    if not char then return end
-
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if not hrp or not humanoid then return end
-
-    if FlyEnabled then
-        if not BodyGyro then
-            BodyGyro = Instance.new("BodyGyro")
-            BodyGyro.P = 9e4
-            BodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-            BodyGyro.CFrame = hrp.CFrame
-            BodyGyro.Parent = hrp
-        end
-
-        if not BodyVelocity then
-            BodyVelocity = Instance.new("BodyVelocity")
-            BodyVelocity.Velocity = Vector3.new(0, 0, 0)
-            BodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-            BodyVelocity.Parent = hrp
-        end
-
-        humanoid.PlatformStand = true
+local function updateSilentAimUI()
+    if silentAimEnabled then
+        SilentAimButton.BackgroundColor3 = PURPLE_NEON
+        SilentAimButton.Text = "SILENT AIM [ON]"
     else
-        if BodyGyro then 
-            BodyGyro:Destroy() 
-            BodyGyro = nil
-        end
-        if BodyVelocity then 
-            BodyVelocity:Destroy() 
-            BodyVelocity = nil
-        end
-        humanoid.PlatformStand = false
+        SilentAimButton.BackgroundColor3 = OFF_COLOR
+        SilentAimButton.Text = "SILENT AIM [OFF]"
     end
 end
 
-local FlyToggle = Tabs.Main:AddToggle("FlyToggle", {
-    Title = "Enable Fly",
-    Default = false
-})
-
-FlyToggle:OnChanged(function(Value)
-    ToggleFly(Value)
+SilentAimButton.MouseButton1Down:Connect(function()
+    silentAimEnabled = not silentAimEnabled
+    updateSilentAimUI()
 end)
 
-Tabs.Main:AddSlider("FlySpeedSlider", {
-    Title = "Fly Speed",
-    Default = 50,
-    Min = 10,
-    Max = 300,
-    Rounding = 0,
-    Callback = function(Value)
-        FlySpeed = Value
-    end
-})
-
-local function TeleportUp()
-    local char = LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    hrp.CFrame = hrp.CFrame * CFrame.new(0, 40, 0)
-
-    Fluent:Notify({
-        Title = "Zyro hub",
-        Content = "Teleported 40 studs up!",
-        Duration = 2
-    })
-end
-
-Tabs.Main:AddButton({
-    Title = "TP Up (+40 Studs)",
-    Description = "Instant upward teleport (Hotkey: G)",
-    Callback = function()
-        TeleportUp()
-    end
-})
-
--- [[ COMBAT / TP TAB ]] --
-
-Tabs.Combat:AddParagraph({
-    Title = "Combat Utilities",
-    Content = "Hotkey: T (Teleport to nearest enemy) | Click para disparar"
-})
-
--- Silent Aim Toggle
-local SilentAimToggle = Tabs.Combat:AddToggle("SilentAimToggle", {
-    Title = "Enable Silent Aim",
-    Default = false
-})
-
-SilentAimToggle:OnChanged(function(Value)
-    SilentAimEnabled = Value
-    if Value then
-        Fluent:Notify({
-            Title = "Zyro hub",
-            Content = "Silent Aim ativado! Click para disparar.",
-            Duration = 2
-        })
-    else
-        Fluent:Notify({
-            Title = "Zyro hub",
-            Content = "Silent Aim desativado.",
-            Duration = 2
-        })
-    end
-end)
-
--- FOV Slider
-Tabs.Combat:AddSlider("FOVSlider", {
-    Title = "Silent Aim FOV",
-    Default = 340,
-    Min = 100,
-    Max = 500,
-    Rounding = 0,
-    Callback = function(Value)
-        FOV_RADIUS = Value
-    end
-})
-
--- Prediction Slider
-Tabs.Combat:AddSlider("PredictionSlider", {
-    Title = "Silent Aim Prediction",
-    Default = 0.22,
-    Min = 0.1,
-    Max = 1.0,
-    Rounding = 2,
-    Callback = function(Value)
-        PredictionFactor = Value
-    end
-})
-
--- Aim Kill Toggle
-local AimKillToggle = Tabs.Combat:AddToggle("AimKillToggle", {
-    Title = "Enable Aim Kill (One Click = 4x Shots)",
-    Default = false
-})
-
-AimKillToggle:OnChanged(function(Value)
-    AimKillEnabled = Value
-    if Value then
-        Fluent:Notify({
-            Title = "Zyro hub",
-            Content = "Aim Kill ativado! Click para disparar 4x.",
-            Duration = 2
-        })
-    else
-        Fluent:Notify({
-            Title = "Zyro hub",
-            Content = "Aim Kill desativado.",
-            Duration = 2
-        })
-        end
-         end
-end)
-
--- Aim Kill Button
-Tabs.Combat:AddButton({
-    Title = "Execute Aim Kill (Hotkey: C)",
-    Description = "Click único = 4 disparos em 1 segundo",
-    Callback = function()
-        if AimKillEnabled then
-            ExecuteAimKill()
-        else
-            Fluent:Notify({
-                Title = "Zyro hub",
-                Content = "Ative Aim Kill primeiro!",
-                Duration = 2
-            })
-        end
-    end
-})
-
-local HitboxToggle = Tabs.Combat:AddToggle("HitboxToggle", {
-    Title = "Enable Custom Hitbox",
-    Default = false
-})
-
-HitboxToggle:OnChanged(function(Value)
-    HitboxEnabled = Value
-    if not Value and not UnderplayerEnabled then
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                ResetPlayerHitbox(player)
-            end
-        end
-    end
-end)
-
-Tabs.Combat:AddSlider("HitboxSlider", {
-    Title = "Hitbox Size",
-    Default = 10,
-    Min = 2,
-    Max = 50,
-    Rounding = 0,
-    Callback = function(Value)
-        HitboxSize = Value
-    end
-})
-
-local ESPToggle = Tabs.Combat:AddToggle("ESPToggle", {
-    Title = "Enable ESP (Team Check)",
-    Default = false
-})
-
-ESPToggle:OnChanged(function(Value)
-    ESPEnabled = Value
-    for _, player in pairs(Players:GetPlayers()) do
-        if Value then
-            ApplyHighlight(player)
-        else
-            RemoveHighlight(player)
-        end
-    end
-end)
-
-local function TeleportToNearestPlayer()
-    local myChar = LocalPlayer.Character
-    if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return end
-
-    local myHrp = myChar.HumanoidRootPart
-    local closestPlayer = nil
-    local shortestDistance = math.huge
-
-    for _, player in pairs(Players:GetPlayers()) do
-        if IsEnemy(player) then
-            local char = player.Character
-            if char and char:IsDescendantOf(Workspace) then
-                local humanoid = char:FindFirstChildOfClass("Humanoid")
-                local hrp = char:FindFirstChild("HumanoidRootPart")
-
-                if humanoid and humanoid.Health > 0 and hrp then
-                    local distance = (myHrp.Position - hrp.Position).Magnitude
-                    if distance < shortestDistance then
-                        shortestDistance = distance
-                        closestPlayer = hrp
-                    end
-                end
-            end
-        end
-    end
-
-    if closestPlayer then
-        myHrp.CFrame = closestPlayer.CFrame * CFrame.new(0, 0, 3)
-        Fluent:Notify({ Title = "Zyro hub", Content = "Teleported to nearest enemy!", Duration = 2 })
-    else
-        Fluent:Notify({ Title = "Zyro hub", Content = "No valid enemy found.", Duration = 3 })
-    end
-end
-
-Tabs.Combat:AddButton({
-    Title = "Teleport to Nearest Enemy (Hotkey: T)",
-    Callback = function()
-        TeleportToNearestPlayer()
-    end
-})
-
--- [[ UNDERPLAYER TAB ]] --
-
-Tabs.Under:AddParagraph({
-    Title = "Underplayer Mode",
-    Content = "Hotkey: R (Entra -7 studs debaixo da terra, congela e coloca hitbox 20 no pé dos inimigos. Pressionar R novamente desativa e restaura tudo)."
-})
-
-local UnderToggle
-
-local function ToggleUnderplayer(state)
-    UnderplayerEnabled = state
-    local char = LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-
-    if UnderplayerEnabled then
-        if HitboxEnabled then
-            HitboxToggle:SetValue(false)
-        end
-
-        SurfacePosition = hrp.CFrame
-        hrp.CFrame = SurfacePosition * CFrame.new(0, -7, 0)
-        hrp.Anchored = true
-
-        Fluent:Notify({ Title = "Zyro hub", Content = "Underplayer Ativado (-7 studs).", Duration = 2 })
-    else
-        if SurfacePosition then
-            hrp.CFrame = SurfacePosition
-            SurfacePosition = nil
-        end
-
-        hrp.Anchored = false
-        CleanClones()
-
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                ResetPlayerHitbox(player)
-            end
-        end
-
-        Fluent:Notify({ Title = "Zyro hub", Content = "Underplayer Desativado! Tudo restaurado.", Duration = 2 })
-    end
-end
-
-UnderToggle = Tabs.Under:AddToggle("UnderToggle", {
-    Title = "Enable Underplayer (Hotkey: R)",
-    Default = false
-})
-
-UnderToggle:OnChanged(function(Value)
-    if Value ~= UnderplayerEnabled then
-        ToggleUnderplayer(Value)
-    end
-end)
-
--- [[ SETTINGS TAB ]] --
-
-local ThemeDropdown = Tabs.Settings:AddDropdown("ThemeManager", {
-    Title = "Interface Theme",
-    Values = {"Light", "Dark", "Darker", "Aqua", "Amethyst"},
-    Multi = false,
-    Default = "Light",
-})
-
-ThemeDropdown:OnChanged(function(Value)
-    Fluent:SetTheme(Value)
-end)
-
--- [[ RESPAWN & CHARACTER MANAGEMENT ]] --
-
-local function BindCharacterEvents(player)
-    player.CharacterAdded:Connect(function(char)
-        char:WaitForChild("Humanoid")
-        char:WaitForChild("HumanoidRootPart")
-
-        task.wait(0.5)
-
-        if player == LocalPlayer then
-            if FlyEnabled then
-                ToggleFly(true)
-            end
-        else
-            if ESPEnabled then
-                ApplyHighlight(player)
-            end
-        end
-    end)
-end
-
-for _, player in pairs(Players:GetPlayers()) do
-    BindCharacterEvents(player)
-end
-
-Players.PlayerAdded:Connect(function(player)
-    BindCharacterEvents(player)
-end)
-
--- [[ LOOPS AND CONNECTIONS ]] --
-
-RunService.RenderStepped:Connect(function()
-    -- WalkSpeed
-    if WalkSpeedEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-        LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = TargetWalkSpeed
-    end
-
-    -- Fly Loop
-    if FlyEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local hrp = LocalPlayer.Character.HumanoidRootPart
-        local moveDir = Vector3.new()
-
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Camera.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - Camera.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - Camera.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Camera.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0) end
-
-        if BodyVelocity and BodyGyro then
-            BodyVelocity.Velocity = moveDir * FlySpeed
-            BodyGyro.CFrame = Camera.CFrame
-        end
-    end
-
-    -- ESP Loop
-    if ESPEnabled then
-        for _, player in pairs(Players:GetPlayers()) do
-            if IsEnemy(player) and player.Character then
-                ApplyHighlight(player)
-            else
-                RemoveHighlight(player)
-            end
-        end
-    end
-
-    -- Hitbox Loop
-    if HitboxEnabled and not UnderplayerEnabled then
-        for _, player in pairs(Players:GetPlayers()) do
-            if IsEnemy(player) and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                local hrp = player.Character.HumanoidRootPart
-                local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-
-                if humanoid and humanoid.Health > 0 then
-                    hrp.Size = Vector3.new(HitboxSize, HitboxSize, HitboxSize)
-                    hrp.Transparency = 0.7
-                    hrp.BrickColor = BrickColor.new("Really red")
-                    hrp.Material = Enum.Material.Neon
-                    hrp.CanCollide = false
-                end
-            end
-        end
-    end
-
-    -- Underplayer Loop
-    if UnderplayerEnabled then
-        for _, player in pairs(Players:GetPlayers()) do
-            if IsEnemy(player) and player.Character then
-                local char = player.Character
-                local hrp = char:FindFirstChild("HumanoidRootPart")
-                local humanoid = char:FindFirstChildOfClass("Humanoid")
-
-                if hrp and humanoid and humanoid.Health > 0 then
-                    hrp.Size = Vector3.new(20, 20, 20)
-                    hrp.Transparency = 0.6
-                    hrp.BrickColor = BrickColor.new("Cyan")
-                    hrp.Material = Enum.Material.ForceField
-                    hrp.CanCollide = false
-
-                    local lowerTorso = char:FindFirstChild("LowerTorso") or char:FindFirstChild("Torso")
-                    if lowerTorso then
-                        local rootJoint = hrp:FindFirstChild("RootJoint") or lowerTorso:FindFirstChild("RootJoint")
-                        if rootJoint then
-                            rootJoint.C0 = CFrame.new(0, -7, 0) * CFrame.Angles(-math.rad(90), 0, math.rad(180))
-                        end
-                    end
-                end
-            end
-        end
-    end
-end)
-
--- Infinite Jump
-UserInputService.JumpRequest:Connect(function()
-    if InfJumpEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-        LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
-    end
-end)
-
--- Silent Aim - Disparo ao clicar
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-
-    -- Silent Aim Logic
-    if SilentAimEnabled and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+UserInputService.InputBegan:Connect(function(input, processed)
+    if not silentAimEnabled or processed then return end
+    
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not myRoot then return end
         
-        local targetPart = GetClosestEnemyInFOV()
+        local targetPart = getClosestEnemy()
         
-        if targetPart and ShootRemote then
+        if targetPart then
             local targetPos = targetPart.Position
             local targetChar = targetPart.Parent
             
@@ -748,28 +192,139 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             end)
         end
     end
+end)
 
-    -- Hotkeys
-    if input.KeyCode == Enum.KeyCode.T then
-        TeleportToNearestPlayer()
-    elseif input.KeyCode == Enum.KeyCode.F then
-        FlyToggle:SetValue(not FlyEnabled)
-    elseif input.KeyCode == Enum.KeyCode.R then
-        UnderToggle:SetValue(not UnderplayerEnabled)
-    elseif input.KeyCode == Enum.KeyCode.G then
-        TeleportUp()
-    elseif input.KeyCode == Enum.KeyCode.C then
-        if AimKillEnabled then
-            ExecuteAimKill()
+-- ============================================================
+-- DISPARO AJUSTADO - BOTÃO COM CLIQUE
+-- ============================================================
+
+local function getClosestEnemyPart()
+    local closestEnemy = nil
+    local shortestDistance = math.huge
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") then
+            if player.Character.Humanoid.Health > 0 then
+                local dist = (LocalPlayer.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
+                if dist < shortestDistance then
+                    shortestDistance = dist
+                    closestEnemy = player.Character:FindFirstChild("Head") or player.Character.HumanoidRootPart
+                end
+            end
         end
+    end
+    return closestEnemy
+end
+
+local DisparoButton, DisparoStroke = createButton("Disparo", "DISPARO ÚNICO", 2)
+
+DisparoButton.MouseButton1Click:Connect(function()
+    local character = LocalPlayer.Character
+    if not character then return end
+    
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    local tool = character:FindFirstChildOfClass("Tool")
+    
+    if rootPart and tool then
+        local targetPart = getClosestEnemyPart()
+        local targetPos = targetPart and targetPart.Position or (rootPart.Position + rootPart.CFrame.LookVector * 50)
+        local originPos = rootPart.Position
+        
+        task.spawn(function()
+            tool:Activate()
+        end)
+        
+        pcall(function()
+            ShootRemote:FireServer(
+                originPos,
+                targetPos,
+                targetPart or workspace,
+                targetPos
+            )
+        end)
+        
+        -- Feedback visual
+        DisparoButton.BackgroundColor3 = PURPLE_NEON
+        task.wait(0.2)
+        DisparoButton.BackgroundColor3 = OFF_COLOR
     end
 end)
 
--- Initial Tab
-Window:SelectTab(1)
+-- ============================================================
+-- AIM KILL - BOTÃO COM MÚLTIPLOS DISPAROS
+-- ============================================================
 
-Fluent:Notify({
-    Title = "Zyro hub",
-    Content = "Zyro Hub com Silent Aim + Aim Kill carregado!",
-    Duration = 5
-})
+local AimKillButton, AimKillStroke = createButton("AimKill", "AIM KILL", 3)
+
+AimKillButton.MouseButton1Click:Connect(function()
+    local character = LocalPlayer.Character
+    if not character then return end
+    
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    local tool = character:FindFirstChildOfClass("Tool")
+    
+    if rootPart and tool then
+        local targetPart = getClosestEnemyPart()
+        if not targetPart then return end
+        
+        local targetPos = targetPart.Position
+        local originPos = rootPart.Position
+        
+        -- 4 disparos em 1 segundo
+        for i = 1, 4 do
+            task.wait(0.25)
+            
+            pcall(function()
+                ShootRemote:FireServer(
+                    originPos,
+                    targetPos,
+                    targetPart,
+                    targetPos
+                )
+            end)
+        end
+        
+        -- Feedback visual
+        AimKillButton.BackgroundColor3 = PURPLE_NEON
+        task.wait(0.3)
+        AimKillButton.BackgroundColor3 = OFF_COLOR
+    end
+end)
+
+-- ============================================================
+-- NOTIFICAÇÃO DE CARREGAMENTO
+-- ============================================================
+
+local NotifGui = Instance.new("ScreenGui")
+NotifGui.Name = "GomesNotif"
+NotifGui.ResetOnSpawn = false
+NotifGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local NotifFrame = Instance.new("Frame")
+NotifFrame.Size = UDim2.new(0, 300, 0, 60)
+NotifFrame.Position = UDim2.new(0.5, -150, 0, 20)
+NotifFrame.BackgroundColor3 = BG_COLOR
+NotifFrame.BorderSizePixel = 0
+NotifFrame.Parent = NotifGui
+
+local NotifStroke = Instance.new("UIStroke")
+NotifStroke.Color = PURPLE_NEON
+NotifStroke.Thickness = 2
+NotifStroke.Parent = NotifFrame
+
+local NotifLabel = Instance.new("TextLabel")
+NotifLabel.Size = UDim2.new(1, 0, 1, 0)
+NotifLabel.BackgroundTransparency = 1
+NotifLabel.Text = "GOMES HUB CARREGADO"
+NotifLabel.TextColor3 = PURPLE_NEON
+NotifLabel.Font = Enum.Font.GothamBold
+NotifLabel.TextSize = 14
+NotifLabel.Parent = NotifFrame
+
+-- Desaparecer após 3 segundos
+task.wait(3)
+TweenService:Create(NotifFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {BackgroundTransparency = 1}):Play()
+TweenService:Create(NotifStroke, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {Transparency = 1}):Play()
+TweenService:Create(NotifLabel, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {TextTransparency = 1}):Play()
+
+print("[GOMES HUB] Script carregado com sucesso!")
