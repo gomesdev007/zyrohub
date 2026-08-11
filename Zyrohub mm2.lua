@@ -25,7 +25,7 @@ end
 -- Criar Janela
 local Window = Fluent:CreateWindow({
 	Title = "ZYRO HUB UNIVERSAL",
-	SubTitle = "by Gomes.wqq",
+	SubTitle = "creator:@Gomes.wqq",
 	TabWidth = 160,
 	Size = UDim2.fromOffset(580, 460),
 	Acrylic = true,
@@ -64,8 +64,8 @@ Tabs.Main:AddParagraph({
 })
 
 -- Cam Lock Toggle
-local CamLockToggle = Tabs.Main:AddToggle("CamLock", {
-	Title = "Cam-Lock [Z]",
+local CamLockToggle = Tabs.Main:AddToggle("aimbot", {
+	Title = "aimbot(z)",
 	Default = false,
 	Callback = function(Value)
 		Features.CamLock = Value
@@ -73,12 +73,12 @@ local CamLockToggle = Tabs.Main:AddToggle("CamLock", {
 })
 
 Tabs.Main:AddButton({
-	Title = "Notificação de Teste",
-	Description = "Clique para testar notificações",
+	Title = "check status",
+	Description = "Check",
 	Callback = function()
 		Fluent:Notify({
-			Title = "✅ Script Ativo",
-			Content = "ZYRO HUB UNIVERSAL está funcionando!",
+			Title = "●online",
+			Content = "on!",
 			Duration = 3
 		})
 	end
@@ -97,8 +97,8 @@ local InfinityJumpToggle = Tabs.Movement:AddToggle("InfinityJump", {
 
 -- Jump Power Slider
 local JumpPowerSlider = Tabs.Movement:AddSlider("JumpPower", {
-	Title = "Velocidade do Jump",
-	Description = "Ajuste a força do salto (10 a 150)",
+	Title = "jump Power",
+	Description = "Ajust jump",
 	Default = 50,
 	Min = 10,
 	Max = 150,
@@ -118,8 +118,8 @@ local FlyToggle = Tabs.Movement:AddToggle("Fly", {
 })
 
 Tabs.Movement:AddParagraph({
-	Title = "Controles do Fly",
-	Content = "W/A/S/D - Mover\nSpace - Subir\nCtrl - Descer\nF - Ativar/Desativar"
+	Title = "Controls",
+	Content = "W/A/S/D - Move\nSpace - up\nCtrl -down\nF"
 })
 
 -- No-Clip Toggle
@@ -135,8 +135,8 @@ local NoClipToggle = Tabs.Movement:AddToggle("NoClip", {
 
 -- TP Player Button
 Tabs.Teleport:AddButton({
-	Title = "TP Player Mais Próximo [T]",
-	Description = "Teleporta para o player mais próximo",
+	Title = "TP Player  [T]",
+	Description = "Teleport",
 	Callback = function()
 		TPToClosestPlayer()
 	end
@@ -144,8 +144,8 @@ Tabs.Teleport:AddButton({
 
 -- TP Fly Up Button
 Tabs.Teleport:AddButton({
-	Title = "TP Fly Up [Y]",
-	Description = "Teleporta 40 studs para cima",
+	Title = "TP Fly Up beta [Y]",
+	Description = "Teleport beta",
 	Callback = function()
 		TPFlyUp()
 	end
@@ -153,7 +153,7 @@ Tabs.Teleport:AddButton({
 
 Tabs.Teleport:AddParagraph({
 	Title = "Informações",
-	Content = "T - Teleporta para player mais próximo (Uma vez)\nY - Teleporta 40 studs para cima (Uma vez)"
+	Content = "T teleport success\nY - "
 })
 
 -- ========== IMPLEMENTAÇÃO DAS FEATURES ==========
