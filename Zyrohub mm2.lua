@@ -18,15 +18,19 @@ local FlyEnabled = false
 local FlySpeed = 50
 local BodyVelocity = nil
 local BodyGyro = nil
+local NoclipEnabled = false
+local NoclipConnection = nil
 
 -- Control Variables: Combat
 local HitboxEnabled = false
 local HitboxSize = 10
 local ESPEnabled = false
+local ESPLineEnabled = false
 local SilentAimEnabled = false
 local FOV_RADIUS = 340
 local PredictionFactor = 0.22
 local ShootRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ShootGun")
+local ESPLines = {}
 
 -- Control Variables: Underplayer
 local UnderplayerEnabled = false
@@ -100,6 +104,16 @@ local function CleanClones()
     end
 end
 
+-- Limpa as linhas de ESP
+local function CleanESPLines()
+    for _, line in pairs(ESPLines) do
+        if line and line.Parent then
+            line:Destroy()
+        end
+    end
+    ESPLines = {}
+end
+
 local function ApplyHighlight(player)
     if not ESPEnabled or not IsEnemy(player) then return end
     local char = player.Character
@@ -119,6 +133,53 @@ local function RemoveHighlight(player)
     if player and player.Character then
         local hl = player.Character:FindFirstChild("ZyroHighlight")
         if hl then hl:Destroy() end
+    end
+end
+
+-- [[ NOCLIP FUNCTION ]] --
+
+local function ToggleNoclip(state)
+    NoclipEnabled = state
+    
+    if NoclipEnabled then
+        if NoclipConnection then
+            NoclipConnection:Disconnect()
+        end
+        
+        NoclipConnection = RunService.RenderStepped:Connect(function()
+            if LocalPlayer.Character then
+                for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end)
+        
+        Fluent:Notify({
+            Title = "Zyro hub",
+            Content = "Noclip Ativado!",
+            Duration = 2
+        })
+    else
+        if NoclipConnection then
+            NoclipConnection:Disconnect()
+            NoclipConnection = nil
+        end
+        
+        if LocalPlayer.Character then
+            for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        end
+        
+        Fluent:Notify({
+            Title = "Zyro hub",
+            Content = "Noclip Desativado!",
+            Duration = 2
+        })
     end
 end
 
@@ -146,6 +207,38 @@ local function getClosestEnemy()
         end
     end
     return closestPart
+end
+
+-- [[ ESP LINE FUNCTION ]] --
+
+local function CreateESPLine(player)
+    if not ESPLineEnabled or not IsEnemy(player) then return end
+    
+    local char = player.Character
+    if not char or not char:FindFirstChild("Head") then return end
+    
+    local line = Instance.new("Line")
+    line.Transparency = 0
+    line.Color = Color3.fromRGB(255, 0, 0)
+    line.Thickness = 2
+    
+    ESPLines[player] = line
+    
+    RunService.RenderStepped:Connect(function()
+        if not ESPLineEnabled or not line.Parent then return end
+        if not char or not char:FindFirstChild("Head") or not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("Head") then
+            if line.Parent then line:Destroy() end
+            return
+        end
+        
+        local screenSize = Camera.ViewportSize
+        local screenCenter = Vector2.new(screenSize.X / 2, screenSize.Y / 2)
+        
+        line.From = screenCenter
+        line.To = Camera:WorldToViewportPoint(char.Head.Position)
+    end)
+    
+    line.Parent = LocalPlayer.PlayerGui or LocalPlayer:WaitForChild("PlayerGui")
 end
 
 -- [[ MOVEMENT TAB ]] --
@@ -179,6 +272,15 @@ Tabs.Main:AddSlider("WalkSpeedSlider", {
         TargetWalkSpeed = Value
     end
 })
+
+local NoclipToggle = Tabs.Main:AddToggle("NoclipToggle", {
+    Title = "Enable Noclip",
+    Default = false
+})
+
+NoclipToggle:OnChanged(function(Value)
+    ToggleNoclip(Value)
+end)
 
 local InfJumpToggle = Tabs.Main:AddToggle("InfJumpToggle", {
     Title = "Infinite Jump",
@@ -321,6 +423,24 @@ Tabs.Combat:AddSlider("PredictionSlider", {
     end
 })
 
+local ESPLineToggle = Tabs.Combat:AddToggle("ESPLineToggle", {
+    Title = "Enable ESP Line",
+    Default = false
+})
+
+ESPLineToggle:OnChanged(function(Value)
+    ESPLineEnabled = Value
+    if not Value then
+        CleanESPLines()
+    else
+        Fluent:Notify({
+            Title = "Zyro hub",
+            Content = "ESP Line Ativado! Linhas até a cabeça dos inimigos.",
+            Duration = 2
+        })
+    end
+end)
+
 local HitboxToggle = Tabs.Combat:AddToggle("HitboxToggle", {
     Title = "Enable Custom Hitbox",
     Default = false
@@ -349,7 +469,7 @@ Tabs.Combat:AddSlider("HitboxSlider", {
 })
 
 local ESPToggle = Tabs.Combat:AddToggle("ESPToggle", {
-    Title = "Enable ESP (Team Check)",
+    Title = "Enable ESP Highlight",
     Default = false
 })
 
@@ -426,24 +546,19 @@ local function ToggleUnderplayer(state)
             HitboxToggle:SetValue(false)
         end
 
-        -- Salva a posição exata da superfície ao ativar
         SurfacePosition = hrp.CFrame
-        -- Teleporta -7 studs para baixo e congela totalmente o personagem
         hrp.CFrame = SurfacePosition * CFrame.new(0, -7, 0)
         hrp.Anchored = true
 
         Fluent:Notify({ Title = "Zyro hub", Content = "Underplayer Ativado (-7 studs).", Duration = 2 })
     else
-        -- 1. Retorna instantaneamente para a posição original da superfície
         if SurfacePosition then
             hrp.CFrame = SurfacePosition
             SurfacePosition = nil
         end
 
-        -- 2. Descongela o personagem
         hrp.Anchored = false
 
-        -- 3. Limpeza total do Underplayer: remove clones e restaura todas as hitboxes ao estado original
         CleanClones()
 
         for _, player in pairs(Players:GetPlayers()) do
@@ -497,6 +612,9 @@ local function BindCharacterEvents(player)
             if ESPEnabled then
                 ApplyHighlight(player)
             end
+            if ESPLineEnabled then
+                CreateESPLine(player)
+            end
         end
     end)
 end
@@ -547,6 +665,17 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
+    -- Loop de ESP Line
+    if ESPLineEnabled then
+        for _, player in pairs(Players:GetPlayers()) do
+            if IsEnemy(player) and player.Character then
+                if not ESPLines[player] then
+                    CreateESPLine(player)
+                end
+            end
+        end
+    end
+
     -- Loop de Hitbox Padrão (só roda se Underplayer estiver DESATIVADO)
     if HitboxEnabled and not UnderplayerEnabled then
         for _, player in pairs(Players:GetPlayers()) do
@@ -574,7 +703,6 @@ RunService.RenderStepped:Connect(function()
                 local humanoid = char:FindFirstChildOfClass("Humanoid")
 
                 if hrp and humanoid and humanoid.Health > 0 then
-                    -- Aplica Hitbox Tamanho 20 estendida para o pé
                     hrp.Size = Vector3.new(20, 20, 20)
                     hrp.Transparency = 0.6
                     hrp.BrickColor = BrickColor.new("Cyan")
@@ -651,6 +779,6 @@ Window:SelectTab(1)
 
 Fluent:Notify({
     Title = "Zyro hub",
-    Content = "Zyro Hub atualizado com Silent Aim!",
+    Content = "Zyro Hub atualizado com Noclip e ESP Line!",
     Duration = 5
 })
