@@ -9,7 +9,7 @@ gui.Name = "ScriptsForDevelopers"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- main
+-- mai
 local main = Instance.new("Frame")
 main.Size = UDim2.new(0, 180, 0, 210)
 main.Position = UDim2.new(0.5, -90, 0.5, -105)
