@@ -1,1 +1,182 @@
+-- LocalScript em StarterPlayer > StarterPlayerScripts ou StarterGui
 
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Criar ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "SendRemoteGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+-- Criar frame principal (draggável)
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 280, 0, 140)
+mainFrame.Position = UDim2.new(0, 20, 0, 20)
+mainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+mainFrame.BorderSizePixel = 1
+mainFrame.BorderColor3 = Color3.fromRGB(51, 51, 51)
+mainFrame.Parent = screenGui
+
+-- Adicionar UICorner (bordas arredondadas)
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = mainFrame
+
+-- Variáveis de arrasto
+local dragging = false
+local dragInput = nil
+local dragStart = nil
+local startPos = nil
+
+-- Função para iniciar arrasto
+mainFrame.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = mainFrame.Position
+		dragInput = input
+	end
+end)
+
+mainFrame.InputEnded:Connect(function(input, gameProcessed)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input, gameProcessed)
+	if dragging and dragInput == input then
+		local delta = input.Position - dragStart
+		mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+
+-- Criar barra de título
+local titleBar = Instance.new("TextLabel")
+titleBar.Name = "TitleBar"
+titleBar.Size = UDim2.new(1, 0, 0, 35)
+titleBar.Position = UDim2.new(0, 0, 0, 0)
+titleBar.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+titleBar.BorderSizePixel = 0
+titleBar.Text = "send remote"
+titleBar.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleBar.TextSize = 12
+titleBar.Font = Enum.Font.GothamBold
+titleBar.Parent = mainFrame
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 12)
+titleCorner.Parent = titleBar
+
+-- Divisor
+local divider = Instance.new("Frame")
+divider.Size = UDim2.new(1, 0, 0, 1)
+divider.Position = UDim2.new(0, 0, 0, 34)
+divider.BackgroundColor3 = Color3.fromRGB(34, 34, 34)
+divider.BorderSizePixel = 0
+divider.Parent = mainFrame
+
+-- Criar TextBox para input
+local remoteInput = Instance.new("TextBox")
+remoteInput.Name = "RemoteInput"
+remoteInput.Size = UDim2.new(1, -12, 0, 28)
+remoteInput.Position = UDim2.new(0, 6, 0, 42)
+remoteInput.BackgroundColor3 = Color3.fromRGB(26, 26, 26)
+remoteInput.BorderColor3 = Color3.fromRGB(51, 51, 51)
+remoteInput.BorderSizePixel = 1
+remoteInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+remoteInput.TextSize = 11
+remoteInput.Font = Enum.Font.Gotham
+remoteInput.PlaceholderText = "Remote alvo..."
+remoteInput.PlaceholderColor3 = Color3.fromRGB(136, 136, 136)
+remoteInput.Parent = mainFrame
+
+local inputCorner = Instance.new("UICorner")
+inputCorner.CornerRadius = UDim.new(0, 8)
+inputCorner.Parent = remoteInput
+
+-- Criar botão Send
+local sendBtn = Instance.new("TextButton")
+sendBtn.Name = "SendBtn"
+sendBtn.Size = UDim2.new(1, -12, 0, 28)
+sendBtn.Position = UDim2.new(0, 6, 0, 75)
+sendBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 26)
+sendBtn.BorderColor3 = Color3.fromRGB(68, 68, 68)
+sendBtn.BorderSizePixel = 1
+sendBtn.Text = "send"
+sendBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+sendBtn.TextSize = 11
+sendBtn.Font = Enum.Font.GothamBold
+sendBtn.Parent = mainFrame
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 8)
+btnCorner.Parent = sendBtn
+
+-- Efeitos de hover no botão
+sendBtn.MouseEnter:Connect(function()
+	sendBtn.BackgroundColor3 = Color3.fromRGB(37, 37, 37)
+	sendBtn.BorderColor3 = Color3.fromRGB(85, 85, 85)
+end)
+
+sendBtn.MouseLeave:Connect(function()
+	sendBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 26)
+	sendBtn.BorderColor3 = Color3.fromRGB(68, 68, 68)
+end)
+
+-- Criar label de status
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Name = "StatusLabel"
+statusLabel.Size = UDim2.new(1, -12, 0, 15)
+statusLabel.Position = UDim2.new(0, 6, 0, 107)
+statusLabel.BackgroundTransparency = 1
+statusLabel.TextColor3 = Color3.fromRGB(136, 136, 136)
+statusLabel.TextSize = 10
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.Text = ""
+statusLabel.Parent = mainFrame
+
+-- Função para enviar remote
+local function sendRemote()
+	local remoteTarget = remoteInput.Text:match("^%s*(.-)%s*$") or ""
+	
+	if remoteTarget == "" then
+		statusLabel.TextColor3 = Color3.fromRGB(255, 107, 107)
+		statusLabel.Text = "Enter a remote"
+		return
+	end
+	
+	statusLabel.TextColor3 = Color3.fromRGB(136, 136, 136)
+	statusLabel.Text = "Sending..."
+	
+	-- Aqui você executa seu remote
+	-- Exemplo: ReplicatedStorage:FindFirstChild("RemoteFolder")[remoteTarget]:FireServer()
+	
+	wait(0.6)
+	
+	statusLabel.TextColor3 = Color3.fromRGB(81, 207, 102)
+	statusLabel.Text = "✓ " .. remoteTarget
+	remoteInput.Text = ""
+	
+	wait(3)
+	statusLabel.Text = ""
+end
+
+-- Conectar clique do botão
+sendBtn.MouseButton1Click:Connect(sendRemote)
+
+-- Permitir enviar com Enter
+remoteInput.FocusLost:Connect(function(enterPressed)
+	if enterPressed then
+		sendRemote()
+	end
+end)
+
+print("✓ Send Remote GUI Carregado!")
