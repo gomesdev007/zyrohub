@@ -1,0 +1,126 @@
+-- scripts for developers
+-- small draggable gui
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "ScriptsForDevelopers"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local main = Instance.new("Frame")
+main.Size = UDim2.new(0, 180, 0, 190)
+main.Position = UDim2.new(0.5, -90, 0.5, -95)
+main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+main.BorderSizePixel = 0
+main.Parent = gui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = main
+
+-- drag
+local dragging = false
+local dragStart
+local startPos
+
+local function updateDrag(input)
+	local delta = input.Position - dragStart
+	main.Position = UDim2.new(
+		startPos.X.Scale,
+		startPos.X.Offset + delta.X,
+		startPos.Y.Scale,
+		startPos.Y.Offset + delta.Y
+	)
+end
+
+main.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		dragging = true
+		dragStart = input.Position
+		startPos = main.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+	if dragging and (
+		input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch
+	) then
+		updateDrag(input)
+	end
+end)
+
+-- title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -10, 0, 30)
+title.Position = UDim2.new(0, 5, 0, 3)
+title.BackgroundTransparency = 1
+title.Text = "scripts for developers"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 14
+title.Font = Enum.Font.GothamBold
+title.Parent = main
+
+local function createButton(text, y, url)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(1, -16, 0, 30)
+	button.Position = UDim2.new(0, 8, 0, y)
+	button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+	button.BorderSizePixel = 0
+	button.Text = text
+	button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	button.TextSize = 12
+	button.Font = Enum.Font.Gotham
+	button.AutoButtonColor = true
+	button.Parent = main
+
+	local buttonCorner = Instance.new("UICorner")
+	buttonCorner.CornerRadius = UDim.new(0, 7)
+	buttonCorner.Parent = button
+
+	button.MouseButton1Click:Connect(function()
+		local success, err = pcall(function()
+			loadstring(game:HttpGet(url))()
+		end)
+
+		if not success then
+			warn("failed to execute " .. text .. ": " .. tostring(err))
+		end
+	end)
+
+	return button
+end
+
+createButton(
+	"test anti cheat",
+	38,
+	"https://raw.githubusercontent.com/gomesdev007/zyrohub/refs/heads/main/Anticheattest"
+)
+
+createButton(
+	"dex explorer",
+	72,
+	"https://github.com/AZYsGithub/DexPlusPlus/releases/latest/download/out.lua"
+)
+
+createButton(
+	"helper list remote",
+	106,
+	"https://raw.githubusercontent.com/gomesdev007/zyrohub/refs/heads/main/Helper%20list%20remote"
+)
+
+createButton(
+	"send remote",
+	140,
+	"https://raw.githubusercontent.com/gomesdev007/zyrohub/refs/heads/main/Sendremote"
+)
