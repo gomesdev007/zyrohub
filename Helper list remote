@@ -1,0 +1,307 @@
+-- HELPER LIST REMOTE
+-- LOCAL SCRIPT
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- gui
+local gui = Instance.new("ScreenGui")
+gui.Name = "HelperListRemote"
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
+
+-- main
+local main = Instance.new("Frame")
+main.Size = UDim2.new(0, 250, 0, 310)
+main.Position = UDim2.new(0.5, -125, 0.5, -155)
+main.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+main.BorderSizePixel = 0
+main.Parent = gui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = main
+
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(55, 55, 65)
+stroke.Thickness = 1
+stroke.Parent = main
+
+-- title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -50, 0, 35)
+title.Position = UDim2.new(0, 12, 0, 3)
+title.BackgroundTransparency = 1
+title.Text = "HELPER LIST REMOTE"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 14
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = main
+
+-- plus
+local plus = Instance.new("TextButton")
+plus.Size = UDim2.new(0, 30, 0, 30)
+plus.Position = UDim2.new(1, -38, 0, 5)
+plus.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
+plus.Text = "+"
+plus.TextColor3 = Color3.fromRGB(255, 255, 255)
+plus.TextSize = 20
+plus.Font = Enum.Font.GothamBold
+plus.Parent = main
+
+local plusCorner = Instance.new("UICorner")
+plusCorner.CornerRadius = UDim.new(0, 8)
+plusCorner.Parent = plus
+
+-- add panel
+local addPanel = Instance.new("Frame")
+addPanel.Size = UDim2.new(1, -20, 0, 105)
+addPanel.Position = UDim2.new(0, 10, 0, 40)
+addPanel.BackgroundColor3 = Color3.fromRGB(24, 24, 29)
+addPanel.BorderSizePixel = 0
+addPanel.Visible = false
+addPanel.Parent = main
+
+local addCorner = Instance.new("UICorner")
+addCorner.CornerRadius = UDim.new(0, 9)
+addCorner.Parent = addPanel
+
+-- name box
+local nameBox = Instance.new("TextBox")
+nameBox.Size = UDim2.new(1, -20, 0, 28)
+nameBox.Position = UDim2.new(0, 10, 0, 8)
+nameBox.BackgroundColor3 = Color3.fromRGB(32, 32, 38)
+nameBox.BorderSizePixel = 0
+nameBox.PlaceholderText = "Name"
+nameBox.Text = ""
+nameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+nameBox.PlaceholderColor3 = Color3.fromRGB(130, 130, 140)
+nameBox.TextSize = 12
+nameBox.Font = Enum.Font.Gotham
+nameBox.ClearTextOnFocus = false
+nameBox.Parent = addPanel
+
+local nameCorner = Instance.new("UICorner")
+nameCorner.CornerRadius = UDim.new(0, 7)
+nameCorner.Parent = nameBox
+
+-- remote box
+local remoteBox = Instance.new("TextBox")
+remoteBox.Size = UDim2.new(1, -20, 0, 28)
+remoteBox.Position = UDim2.new(0, 10, 0, 42)
+remoteBox.BackgroundColor3 = Color3.fromRGB(32, 32, 38)
+remoteBox.BorderSizePixel = 0
+remoteBox.PlaceholderText = "Remote"
+remoteBox.Text = ""
+remoteBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+remoteBox.PlaceholderColor3 = Color3.fromRGB(130, 130, 140)
+remoteBox.TextSize = 12
+remoteBox.Font = Enum.Font.Gotham
+remoteBox.ClearTextOnFocus = false
+remoteBox.Parent = addPanel
+
+local remoteCorner = Instance.new("UICorner")
+remoteCorner.CornerRadius = UDim.new(0, 7)
+remoteCorner.Parent = remoteBox
+
+-- add button
+local addButton = Instance.new("TextButton")
+addButton.Size = UDim2.new(0, 55, 0, 25)
+addButton.Position = UDim2.new(1, -65, 1, -30)
+addButton.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+addButton.BorderSizePixel = 0
+addButton.Text = "ADD"
+addButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+addButton.TextSize = 11
+addButton.Font = Enum.Font.GothamBold
+addButton.Parent = addPanel
+
+local addButtonCorner = Instance.new("UICorner")
+addButtonCorner.CornerRadius = UDim.new(0, 6)
+addButtonCorner.Parent = addButton
+
+-- list
+local list = Instance.new("ScrollingFrame")
+list.Size = UDim2.new(1, -20, 0, 155)
+list.Position = UDim2.new(0, 10, 0, 48)
+list.BackgroundTransparency = 1
+list.BorderSizePixel = 0
+list.ScrollBarThickness = 3
+list.ScrollBarImageTransparency = 0.3
+list.CanvasSize = UDim2.new(0, 0, 0, 0)
+list.Parent = main
+
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 5)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Parent = list
+
+-- data
+local remotes = {}
+
+local function updateCanvas()
+	list.CanvasSize = UDim2.new(
+		0,
+		0,
+		0,
+		layout.AbsoluteContentSize.Y + 5
+	)
+end
+
+local function createRemoteItem(remoteName, remotePath)
+	local item = Instance.new("Frame")
+	item.Size = UDim2.new(1, -5, 0, 45)
+	item.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+	item.BorderSizePixel = 0
+	item.Parent = list
+
+	local itemCorner = Instance.new("UICorner")
+	itemCorner.CornerRadius = UDim.new(0, 8)
+	itemCorner.Parent = item
+
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Size = UDim2.new(1, -10, 0, 20)
+	nameLabel.Position = UDim2.new(0, 8, 0, 2)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Text = remoteName
+	nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	nameLabel.TextSize = 12
+	nameLabel.Font = Enum.Font.GothamBold
+	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	nameLabel.Parent = item
+
+	local remoteLabel = Instance.new("TextLabel")
+	remoteLabel.Size = UDim2.new(1, -10, 0, 18)
+	remoteLabel.Position = UDim2.new(0, 8, 0, 22)
+	remoteLabel.BackgroundTransparency = 1
+	remoteLabel.Text = remotePath
+	remoteLabel.TextColor3 = Color3.fromRGB(145, 145, 155)
+	remoteLabel.TextSize = 10
+	remoteLabel.Font = Enum.Font.Gotham
+	remoteLabel.TextXAlignment = Enum.TextXAlignment.Left
+	remoteLabel.TextTruncate = Enum.TextTruncate.AtEnd
+	remoteLabel.Parent = item
+
+	updateCanvas()
+end
+
+-- plus toggle
+plus.MouseButton1Click:Connect(function()
+	addPanel.Visible = not addPanel.Visible
+
+	if addPanel.Visible then
+		list.Position = UDim2.new(0, 10, 0, 150)
+		list.Size = UDim2.new(1, -20, 0, 130)
+	else
+		list.Position = UDim2.new(0, 10, 0, 48)
+		list.Size = UDim2.new(1, -20, 0, 232)
+	end
+
+	updateCanvas()
+end)
+
+-- add
+addButton.MouseButton1Click:Connect(function()
+	local name = nameBox.Text
+	local remote = remoteBox.Text
+
+	if name == "" or remote == "" then
+		return
+	end
+
+	table.insert(remotes, {
+		Name = name,
+		Remote = remote
+	})
+
+	createRemoteItem(name, remote)
+
+	nameBox.Text = ""
+	remoteBox.Text = ""
+end)
+
+-- copy button
+local copyButton = Instance.new("TextButton")
+copyButton.Size = UDim2.new(1, -20, 0, 32)
+copyButton.Position = UDim2.new(0, 10, 1, -42)
+copyButton.BackgroundColor3 = Color3.fromRGB(38, 38, 47)
+copyButton.BorderSizePixel = 0
+copyButton.Text = "SEND TO CLIPBOARD"
+copyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+copyButton.TextSize = 11
+copyButton.Font = Enum.Font.GothamBold
+copyButton.Parent = main
+
+local copyCorner = Instance.new("UICorner")
+copyCorner.CornerRadius = UDim.new(0, 8)
+copyCorner.Parent = copyButton
+
+copyButton.MouseButton1Click:Connect(function()
+	local output = "local remotes = {\n"
+
+	for _, data in ipairs(remotes) do
+		output = output ..
+			'    ["' .. data.Name .. '"] = "' .. data.Remote .. '",\n'
+	end
+
+	output = output .. "}"
+
+	if setclipboard then
+		setclipboard(output)
+	elseif toclipboard then
+		toclipboard(output)
+	end
+
+	copyButton.Text = "COPIED!"
+
+	task.delay(1.2, function()
+		if copyButton then
+			copyButton.Text = "SEND TO CLIPBOARD"
+		end
+	end)
+end)
+
+-- draggable PC + mobile
+local dragging = false
+local dragStart
+local startPosition
+
+local function updateDrag(input)
+	local delta = input.Position - dragStart
+
+	main.Position = UDim2.new(
+		startPosition.X.Scale,
+		startPosition.X.Offset + delta.X,
+		startPosition.Y.Scale,
+		startPosition.Y.Offset + delta.Y
+	)
+end
+
+main.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		dragging = true
+		dragStart = input.Position
+		startPosition = main.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and (
+		input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch
+	) then
+		updateDrag(input)
+	end
+end)
