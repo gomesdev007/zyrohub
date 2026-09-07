@@ -1,5 +1,6 @@
 --//====================================================
---// RYDERHUB - MOVEMENtu
+--// RYDERHUB
+--// MOVEMENT + AUTO RETURN + ANTI DROP
 --// OWNER: gomescallpod
 --//====================================================
 
@@ -7,6 +8,7 @@ local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
 
 local Player = Players.LocalPlayer
 
@@ -24,6 +26,10 @@ local AutoReturn = false
 local AntiDrop = false
 local Returning = false
 
+--// IDs DA BOLINHA
+local BALL_IMAGE_1 = "rbxassetid://71571085068909"
+local BALL_IMAGE_2 = "rbxassetid://138175358452197"
+
 --//====================================================
 --// CHARACTER
 --//====================================================
@@ -39,7 +45,6 @@ local function UpdateCharacter()
     Humanoid = Character:WaitForChild("Humanoid")
     Root = Character:WaitForChild("HumanoidRootPart")
 
-    -- Aplica os valores atuais
     Humanoid.WalkSpeed = Speed
 
     if Humanoid.UseJumpPower then
@@ -67,36 +72,68 @@ local Gui = Instance.new("ScreenGui")
 Gui.Name = "Ryderhub"
 Gui.ResetOnSpawn = false
 Gui.IgnoreGuiInset = true
-Gui.Parent = game:GetService("CoreGui")
+Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+Gui.Parent = CoreGui
 
 
 --//====================================================
---// OPEN/CLOSE BALL
+--// OPEN BUTTON
 --//====================================================
 
 local OpenButton = Instance.new("ImageButton")
 OpenButton.Name = "RyderhubButton"
-OpenButton.Size = UDim2.new(0,48,0,48)
-OpenButton.Position = UDim2.new(0,12,0.5,-24)
-OpenButton.BackgroundColor3 = Color3.fromRGB(18,18,18)
+OpenButton.Size = UDim2.fromOffset(52,52)
+OpenButton.Position = UDim2.new(0,12,0.5,-26)
+
+OpenButton.BackgroundColor3 =
+    Color3.fromRGB(18,18,20)
+
 OpenButton.BorderSizePixel = 0
-OpenButton.Image = "rbxassetid://71571085068909"
-OpenButton.ScaleType = Enum.ScaleType.Crop
 OpenButton.AutoButtonColor = false
+OpenButton.Image = BALL_IMAGE_1
+OpenButton.ScaleType = Enum.ScaleType.Crop
 OpenButton.Parent = Gui
 
-local OpenCorner = Instance.new("UICorner")
-OpenCorner.CornerRadius = UDim.new(1,0)
-OpenCorner.Parent = OpenButton
+local BallCorner = Instance.new("UICorner")
+BallCorner.CornerRadius = UDim.new(1,0)
+BallCorner.Parent = OpenButton
 
-local OpenStroke = Instance.new("UIStroke")
-OpenStroke.Thickness = 1.5
-OpenStroke.Transparency = 0.25
-OpenStroke.Parent = OpenButton
+local BallStroke = Instance.new("UIStroke")
+BallStroke.Thickness = 1.5
+BallStroke.Transparency = 0.2
+BallStroke.Parent = OpenButton
 
-local OpenScale = Instance.new("UIScale")
-OpenScale.Scale = 1
-OpenScale.Parent = OpenButton
+local BallScale = Instance.new("UIScale")
+BallScale.Scale = 1
+BallScale.Parent = OpenButton
+
+
+--//====================================================
+--// IMAGE FALLBACK
+--//====================================================
+
+-- Primeiro tenta o ID da textura.
+-- Se o primeiro não carregar, troca para o segundo.
+
+task.spawn(function()
+
+    task.wait(2)
+
+    -- O segundo ID funciona como fallback.
+    -- Caso o primeiro asset não esteja disponível,
+    -- o segundo será utilizado.
+
+    if OpenButton.Image == BALL_IMAGE_1 then
+
+        OpenButton.Image = BALL_IMAGE_2
+
+        task.wait(2)
+
+        -- Se o segundo também não estiver disponível,
+        -- mantém o segundo como última tentativa.
+
+    end
+end)
 
 
 --//====================================================
@@ -105,11 +142,17 @@ OpenScale.Parent = OpenButton
 
 local Main = Instance.new("Frame")
 Main.Name = "Main"
-Main.Size = UDim2.new(0,250,0,315)
-Main.Position = UDim2.new(0.5,-125,0.5,-157)
-Main.BackgroundColor3 = Color3.fromRGB(14,14,16)
+
+Main.Size =
+    UDim2.fromOffset(250,315)
+
+Main.Position =
+    UDim2.new(0.5,-125,0.5,-157)
+
+Main.BackgroundColor3 =
+    Color3.fromRGB(14,14,16)
+
 Main.BorderSizePixel = 0
-Main.Visible = true
 Main.ClipsDescendants = true
 Main.Parent = Gui
 
@@ -119,7 +162,7 @@ MainCorner.Parent = Main
 
 local MainStroke = Instance.new("UIStroke")
 MainStroke.Thickness = 1
-MainStroke.Transparency = 0.55
+MainStroke.Transparency = 0.45
 MainStroke.Parent = Main
 
 local MainScale = Instance.new("UIScale")
@@ -132,62 +175,130 @@ MainScale.Parent = Main
 --//====================================================
 
 local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1,0,0,55)
+
+Header.Name = "DragHeader"
+Header.Size = UDim2.new(1,0,0,58)
+Header.Position = UDim2.fromOffset(0,0)
+
 Header.BackgroundTransparency = 1
+Header.Active = true
 Header.Parent = Main
 
+
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1,-24,0,27)
-Title.Position = UDim2.new(0,12,0,7)
+
+Title.Size =
+    UDim2.new(1,-24,0,27)
+
+Title.Position =
+    UDim2.fromOffset(12,6)
+
 Title.BackgroundTransparency = 1
+
 Title.Text = "Ryderhub"
-Title.TextColor3 = Color3.fromRGB(255,255,255)
+
+Title.TextColor3 =
+    Color3.fromRGB(255,255,255)
+
 Title.TextSize = 17
 Title.Font = Enum.Font.GothamBold
-Title.TextXAlignment = Enum.TextXAlignment.Left
+
+Title.TextXAlignment =
+    Enum.TextXAlignment.Left
+
 Title.Parent = Header
 
+
 local Owner = Instance.new("TextLabel")
-Owner.Size = UDim2.new(1,-24,0,18)
-Owner.Position = UDim2.new(0,12,0,31)
+
+Owner.Size =
+    UDim2.new(1,-24,0,18)
+
+Owner.Position =
+    UDim2.fromOffset(12,32)
+
 Owner.BackgroundTransparency = 1
-Owner.Text = "Owner: gomescallpod"
-Owner.TextColor3 = Color3.fromRGB(130,130,135)
+
+Owner.Text =
+    "Owner: gomescallpod"
+
+Owner.TextColor3 =
+    Color3.fromRGB(135,135,140)
+
 Owner.TextSize = 9
 Owner.Font = Enum.Font.Gotham
-Owner.TextXAlignment = Enum.TextXAlignment.Left
+
+Owner.TextXAlignment =
+    Enum.TextXAlignment.Left
+
 Owner.Parent = Header
 
 
 --//====================================================
---// DRAG MOBILE + PC
+--// DRAG - PC + MOBILE
 --//====================================================
 
 local Dragging = false
+local DragInput
 local DragStart
 local StartPosition
 
-local function StartDrag(Input)
+local function UpdateDrag(Input)
 
-    if Input.UserInputType ~= Enum.UserInputType.MouseButton1
-    and Input.UserInputType ~= Enum.UserInputType.Touch then
-        return
-    end
+    local Delta =
+        Input.Position - DragStart
 
-    Dragging = true
-    DragStart = Input.Position
-    StartPosition = Main.Position
+    Main.Position =
+        UDim2.new(
+            StartPosition.X.Scale,
+            StartPosition.X.Offset + Delta.X,
 
-    Input.Changed:Connect(function()
-
-        if Input.UserInputState == Enum.UserInputState.End then
-            Dragging = false
-        end
-
-    end)
+            StartPosition.Y.Scale,
+            StartPosition.Y.Offset + Delta.Y
+        )
 end
 
-Header.InputBegan:Connect(StartDrag)
+
+Header.InputBegan:Connect(function(Input)
+
+    if Input.UserInputType ==
+        Enum.UserInputType.MouseButton1
+        or
+        Input.UserInputType ==
+        Enum.UserInputType.Touch then
+
+        Dragging = true
+        DragStart = Input.Position
+        StartPosition = Main.Position
+
+        DragInput = Input
+
+        Input.Changed:Connect(function()
+
+            if Input.UserInputState ==
+                Enum.UserInputState.End then
+
+                Dragging = false
+                DragInput = nil
+            end
+
+        end)
+    end
+end)
+
+
+Header.InputChanged:Connect(function(Input)
+
+    if Input.UserInputType ==
+        Enum.UserInputType.MouseMovement
+        or
+        Input.UserInputType ==
+        Enum.UserInputType.Touch then
+
+        DragInput = Input
+    end
+end)
+
 
 UserInputService.InputChanged:Connect(function(Input)
 
@@ -195,23 +306,14 @@ UserInputService.InputChanged:Connect(function(Input)
         return
     end
 
-    if Input.UserInputType == Enum.UserInputType.MouseMovement
-    or Input.UserInputType == Enum.UserInputType.Touch then
-
-        local Delta = Input.Position - DragStart
-
-        Main.Position = UDim2.new(
-            StartPosition.X.Scale,
-            StartPosition.X.Offset + Delta.X,
-            StartPosition.Y.Scale,
-            StartPosition.Y.Offset + Delta.Y
-        )
+    if Input == DragInput then
+        UpdateDrag(Input)
     end
 end)
 
 
 --//====================================================
---// OPEN/CLOSE ANIMATION
+--// OPEN / CLOSE
 --//====================================================
 
 local InterfaceOpen = true
@@ -221,67 +323,81 @@ local function OpenInterface()
     InterfaceOpen = true
 
     Main.Visible = true
-    MainScale.Scale = 0.82
+    MainScale.Scale = 0.78
 
     Main.BackgroundTransparency = 0.25
 
-    local Tween = TweenService:Create(
-        MainScale,
-        TweenInfo.new(
-            0.28,
-            Enum.EasingStyle.Back,
-            Enum.EasingDirection.Out
-        ),
-        {
-            Scale = 1
-        }
-    )
+    local ScaleTween =
+        TweenService:Create(
+            MainScale,
 
-    local Fade = TweenService:Create(
-        Main,
-        TweenInfo.new(0.2),
-        {
-            BackgroundTransparency = 0
-        }
-    )
+            TweenInfo.new(
+                0.3,
+                Enum.EasingStyle.Back,
+                Enum.EasingDirection.Out
+            ),
 
-    Tween:Play()
-    Fade:Play()
+            {
+                Scale = 1
+            }
+        )
+
+    local FadeTween =
+        TweenService:Create(
+            Main,
+
+            TweenInfo.new(0.2),
+
+            {
+                BackgroundTransparency = 0
+            }
+        )
+
+    ScaleTween:Play()
+    FadeTween:Play()
 end
+
 
 local function CloseInterface()
 
     InterfaceOpen = false
 
-    local Tween = TweenService:Create(
-        MainScale,
-        TweenInfo.new(
-            0.22,
-            Enum.EasingStyle.Quad,
-            Enum.EasingDirection.In
-        ),
-        {
-            Scale = 0.82
-        }
-    )
+    local ScaleTween =
+        TweenService:Create(
+            MainScale,
 
-    local Fade = TweenService:Create(
-        Main,
-        TweenInfo.new(0.18),
-        {
-            BackgroundTransparency = 0.25
-        }
-    )
+            TweenInfo.new(
+                0.22,
+                Enum.EasingStyle.Quad,
+                Enum.EasingDirection.In
+            ),
 
-    Tween:Play()
-    Fade:Play()
+            {
+                Scale = 0.78
+            }
+        )
 
-    Tween.Completed:Wait()
+    local FadeTween =
+        TweenService:Create(
+            Main,
+
+            TweenInfo.new(0.18),
+
+            {
+                BackgroundTransparency = 0.25
+            }
+        )
+
+    ScaleTween:Play()
+    FadeTween:Play()
+
+    ScaleTween.Completed:Wait()
 
     if not InterfaceOpen then
         Main.Visible = false
     end
 end
+
 
 OpenButton.MouseButton1Click:Connect(function()
 
@@ -294,52 +410,62 @@ end)
 
 
 --//====================================================
---// BALL HOVER ANIMATION
+--// BALL ANIMATION
 --//====================================================
 
-local function BallHover()
+local function BallEnter()
 
     TweenService:Create(
-        OpenScale,
+        BallScale,
+
         TweenInfo.new(
             0.18,
             Enum.EasingStyle.Back,
             Enum.EasingDirection.Out
         ),
+
         {
-            Scale = 1.14
+            Scale = 1.15
         }
     ):Play()
 end
 
+
 local function BallLeave()
 
     TweenService:Create(
-        OpenScale,
+        BallScale,
+
         TweenInfo.new(
-            0.18,
+            0.16,
             Enum.EasingStyle.Quad,
             Enum.EasingDirection.Out
         ),
+
         {
             Scale = 1
         }
     ):Play()
 end
 
-OpenButton.MouseEnter:Connect(BallHover)
+
+OpenButton.MouseEnter:Connect(BallEnter)
 OpenButton.MouseLeave:Connect(BallLeave)
 
 OpenButton.InputBegan:Connect(function(Input)
 
-    if Input.UserInputType == Enum.UserInputType.Touch then
-        BallHover()
+    if Input.UserInputType ==
+        Enum.UserInputType.Touch then
+
+        BallEnter()
     end
 end)
 
 OpenButton.InputEnded:Connect(function(Input)
 
-    if Input.UserInputType == Enum.UserInputType.Touch then
+    if Input.UserInputType ==
+        Enum.UserInputType.Touch then
+
         BallLeave()
     end
 end)
@@ -359,31 +485,57 @@ local function CreateSlider(
 )
 
     local Container = Instance.new("Frame")
-    Container.Size = UDim2.new(1,-24,0,53)
-    Container.Position = UDim2.new(0,12,0,Y)
+
+    Container.Size =
+        UDim2.new(1,-24,0,53)
+
+    Container.Position =
+        UDim2.fromOffset(12,Y)
+
     Container.BackgroundTransparency = 1
     Container.Parent = Main
 
 
     --// LABEL
     local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1,0,0,20)
-    Label.Position = UDim2.new(0,0,0,0)
+
+    Label.Size =
+        UDim2.new(1,0,0,20)
+
+    Label.Position =
+        UDim2.fromOffset(0,0)
+
     Label.BackgroundTransparency = 1
-    Label.Text = Name .. ": " .. Default
-    Label.TextColor3 = Color3.fromRGB(225,225,230)
+
+    Label.Text =
+        Name .. ": " .. Default
+
+    Label.TextColor3 =
+        Color3.fromRGB(225,225,230)
+
     Label.TextSize = 11
     Label.Font = Enum.Font.GothamMedium
-    Label.TextXAlignment = Enum.TextXAlignment.Left
+
+    Label.TextXAlignment =
+        Enum.TextXAlignment.Left
+
     Label.Parent = Container
 
 
     --// BAR
     local Bar = Instance.new("Frame")
-    Bar.Size = UDim2.new(1,0,0,8)
-    Bar.Position = UDim2.new(0,0,0,29)
-    Bar.BackgroundColor3 = Color3.fromRGB(40,40,44)
+
+    Bar.Size =
+        UDim2.new(1,0,0,8)
+
+    Bar.Position =
+        UDim2.fromOffset(0,29)
+
+    Bar.BackgroundColor3 =
+        Color3.fromRGB(42,42,46)
+
     Bar.BorderSizePixel = 0
+    Bar.Active = true
     Bar.Parent = Container
 
     local BarCorner = Instance.new("UICorner")
@@ -393,8 +545,10 @@ local function CreateSlider(
 
     --// FILL
     local Fill = Instance.new("Frame")
-    Fill.Size = UDim2.new(0,0,1,0)
-    Fill.BackgroundColor3 = Color3.fromRGB(220,70,70)
+
+    Fill.BackgroundColor3 =
+        Color3.fromRGB(215,65,65)
+
     Fill.BorderSizePixel = 0
     Fill.Parent = Bar
 
@@ -405,12 +559,20 @@ local function CreateSlider(
 
     --// KNOB
     local Knob = Instance.new("TextButton")
-    Knob.Size = UDim2.new(0,18,0,18)
-    Knob.AnchorPoint = Vector2.new(0.5,0.5)
-    Knob.BackgroundColor3 = Color3.fromRGB(255,255,255)
+
+    Knob.Size =
+        UDim2.fromOffset(18,18)
+
+    Knob.AnchorPoint =
+        Vector2.new(0.5,0.5)
+
+    Knob.BackgroundColor3 =
+        Color3.fromRGB(255,255,255)
+
     Knob.BorderSizePixel = 0
     Knob.Text = ""
     Knob.AutoButtonColor = false
+    Knob.ZIndex = 5
     Knob.Parent = Bar
 
     local KnobCorner = Instance.new("UICorner")
@@ -423,54 +585,64 @@ local function CreateSlider(
 
 
     local Sliding = false
-    local CurrentValue = Default
 
 
-    --// APLICA VALOR DE FORMA SEGURA
+    --//================================================
+    --// APLICA VALOR
+    --//================================================
+
     local function ApplyValue(Value)
 
-        CurrentValue = Value
+        if not Humanoid then
+            Callback(Value)
+            return
+        end
 
-        -- Primeiro restaura o valor atual do Humanoid
-        -- e depois aplica exatamente o valor escolhido.
 
-        if Humanoid then
+        if Name == "SPEED" then
 
-            if Name == "SPEED" then
+            -- Guarda o valor atual antes da alteração
+            local OldValue =
+                Humanoid.WalkSpeed
 
-                local OldValue = Humanoid.WalkSpeed
+            -- Restaura primeiro
+            Humanoid.WalkSpeed =
+                OldValue
 
-                if OldValue ~= Value then
-                    Humanoid.WalkSpeed = OldValue
-                    task.wait()
-                end
+            task.wait()
 
-                Humanoid.WalkSpeed = Value
+            -- Aplica o novo valor
+            Humanoid.WalkSpeed =
+                Value
 
-            elseif Name == "JUMP" then
 
-                if Humanoid.UseJumpPower then
+        elseif Name == "JUMP" then
 
-                    local OldValue = Humanoid.JumpPower
+            if Humanoid.UseJumpPower then
 
-                    if OldValue ~= Value then
-                        Humanoid.JumpPower = OldValue
-                        task.wait()
-                    end
+                local OldValue =
+                    Humanoid.JumpPower
 
-                    Humanoid.JumpPower = Value
+                Humanoid.JumpPower =
+                    OldValue
 
-                else
+                task.wait()
 
-                    local OldValue = Humanoid.JumpHeight
+                Humanoid.JumpPower =
+                    Value
 
-                    if OldValue ~= Value then
-                        Humanoid.JumpHeight = OldValue
-                        task.wait()
-                    end
+            else
 
-                    Humanoid.JumpHeight = Value
-                end
+                local OldValue =
+                    Humanoid.JumpHeight
+
+                Humanoid.JumpHeight =
+                    OldValue
+
+                task.wait()
+
+                Humanoid.JumpHeight =
+                    Value
             end
         end
 
@@ -478,63 +650,96 @@ local function CreateSlider(
     end
 
 
+    --//================================================
+    --// SET VALUE
+    --//================================================
+
     local function SetValue(X)
 
-        local Percent = math.clamp(
-            (X - Bar.AbsolutePosition.X) /
-            Bar.AbsoluteSize.X,
-            0,
-            1
-        )
+        local Width =
+            Bar.AbsoluteSize.X
 
-        local Value = math.floor(
-            Min + ((Max-Min) * Percent) + 0.5
-        )
+        if Width <= 0 then
+            return
+        end
 
-        Label.Text = Name .. ": " .. Value
+        local Percent =
+            math.clamp(
+                (X - Bar.AbsolutePosition.X) / Width,
+                0,
+                1
+            )
+
+        local Value =
+            math.floor(
+                Min +
+                ((Max-Min) * Percent)
+                + 0.5
+            )
+
+
+        Label.Text =
+            Name .. ": " .. Value
+
 
         TweenService:Create(
             Fill,
+
             TweenInfo.new(
-                0.08,
+                0.07,
                 Enum.EasingStyle.Quad,
                 Enum.EasingDirection.Out
             ),
+
             {
-                Size = UDim2.new(
-                    Percent,
-                    0,
-                    1,
-                    0
-                )
+                Size =
+                    UDim2.new(
+                        Percent,
+                        0,
+                        1,
+                        0
+                    )
             }
         ):Play()
 
+
         TweenService:Create(
             Knob,
+
             TweenInfo.new(
-                0.08,
+                0.07,
                 Enum.EasingStyle.Quad,
                 Enum.EasingDirection.Out
             ),
+
             {
-                Position = UDim2.new(
-                    Percent,
-                    0,
-                    0.5,
-                    0
-                )
+                Position =
+                    UDim2.new(
+                        Percent,
+                        0,
+                        0.5,
+                        0
+                    )
             }
         ):Play()
+
 
         ApplyValue(Value)
     end
 
 
+    --//================================================
+    --// BEGIN SLIDE
+    --//================================================
+
     local function BeginSlide(Input)
 
-        if Input.UserInputType ~= Enum.UserInputType.MouseButton1
-        and Input.UserInputType ~= Enum.UserInputType.Touch then
+        if Input.UserInputType ~=
+            Enum.UserInputType.MouseButton1
+            and
+            Input.UserInputType ~=
+            Enum.UserInputType.Touch then
+
             return
         end
 
@@ -542,9 +747,11 @@ local function CreateSlider(
 
         TweenService:Create(
             KnobScale,
+
             TweenInfo.new(0.12),
+
             {
-                Scale = 1.25
+                Scale = 1.3
             }
         ):Play()
 
@@ -556,24 +763,38 @@ local function CreateSlider(
     Bar.InputBegan:Connect(BeginSlide)
 
 
+    --//================================================
+    --// SLIDE
+    --//================================================
+
     UserInputService.InputChanged:Connect(function(Input)
 
         if not Sliding then
             return
         end
 
-        if Input.UserInputType == Enum.UserInputType.MouseMovement
-        or Input.UserInputType == Enum.UserInputType.Touch then
+        if Input.UserInputType ==
+            Enum.UserInputType.MouseMovement
+            or
+            Input.UserInputType ==
+            Enum.UserInputType.Touch then
 
             SetValue(Input.Position.X)
         end
     end)
 
 
+    --//================================================
+    --// END SLIDE
+    --//================================================
+
     UserInputService.InputEnded:Connect(function(Input)
 
-        if Input.UserInputType == Enum.UserInputType.MouseButton1
-        or Input.UserInputType == Enum.UserInputType.Touch then
+        if Input.UserInputType ==
+            Enum.UserInputType.MouseButton1
+            or
+            Input.UserInputType ==
+            Enum.UserInputType.Touch then
 
             if Sliding then
 
@@ -581,11 +802,13 @@ local function CreateSlider(
 
                 TweenService:Create(
                     KnobScale,
+
                     TweenInfo.new(
-                        0.15,
+                        0.16,
                         Enum.EasingStyle.Back,
                         Enum.EasingDirection.Out
                     ),
+
                     {
                         Scale = 1
                     }
@@ -595,24 +818,30 @@ local function CreateSlider(
     end)
 
 
+    --//================================================
+    --// DEFAULT
+    --//================================================
+
     task.defer(function()
 
         local Percent =
             (Default-Min)/(Max-Min)
 
-        Fill.Size = UDim2.new(
-            Percent,
-            0,
-            1,
-            0
-        )
+        Fill.Size =
+            UDim2.new(
+                Percent,
+                0,
+                1,
+                0
+            )
 
-        Knob.Position = UDim2.new(
-            Percent,
-            0,
-            0.5,
-            0
-        )
+        Knob.Position =
+            UDim2.new(
+                Percent,
+                0,
+                0.5,
+                0
+            )
     end)
 end
 
@@ -627,6 +856,7 @@ CreateSlider(
     1,
     500,
     16,
+
     function(Value)
 
         Speed = Value
@@ -648,6 +878,7 @@ CreateSlider(
     1,
     500,
     50,
+
     function(Value)
 
         Jump = Value
@@ -672,13 +903,17 @@ local function CreateButton(Y, Text)
 
     local Button = Instance.new("TextButton")
 
-    Button.Size = UDim2.new(1,-24,0,38)
-    Button.Position = UDim2.new(0,12,0,Y)
+    Button.Size =
+        UDim2.new(1,-24,0,38)
+
+    Button.Position =
+        UDim2.fromOffset(12,Y)
 
     Button.BackgroundColor3 =
         Color3.fromRGB(30,30,34)
 
     Button.BorderSizePixel = 0
+
     Button.Text = Text
 
     Button.TextColor3 =
@@ -692,11 +927,15 @@ local function CreateButton(Y, Text)
 
 
     local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0,9)
+
+    Corner.CornerRadius =
+        UDim.new(0,9)
+
     Corner.Parent = Button
 
 
     local Scale = Instance.new("UIScale")
+
     Scale.Scale = 1
     Scale.Parent = Button
 
@@ -705,7 +944,9 @@ local function CreateButton(Y, Text)
 
         TweenService:Create(
             Scale,
-            TweenInfo.new(0.15),
+
+            TweenInfo.new(0.14),
+
             {
                 Scale = 1.025
             }
@@ -717,7 +958,9 @@ local function CreateButton(Y, Text)
 
         TweenService:Create(
             Scale,
-            TweenInfo.new(0.15),
+
+            TweenInfo.new(0.14),
+
             {
                 Scale = 1
             }
@@ -729,7 +972,9 @@ local function CreateButton(Y, Text)
 
         TweenService:Create(
             Scale,
+
             TweenInfo.new(0.08),
+
             {
                 Scale = 0.96
             }
@@ -741,11 +986,13 @@ local function CreateButton(Y, Text)
 
         TweenService:Create(
             Scale,
+
             TweenInfo.new(
-                0.16,
+                0.15,
                 Enum.EasingStyle.Back,
                 Enum.EasingDirection.Out
             ),
+
             {
                 Scale = 1
             }
@@ -761,25 +1008,30 @@ end
 --// AUTO RETURN
 --//====================================================
 
-local AutoButton = CreateButton(
-    190,
-    "AUTO RETURN: OFF"
-)
+local AutoButton =
+    CreateButton(
+        190,
+        "AUTO RETURN: OFF"
+    )
+
 
 AutoButton.MouseButton1Click:Connect(function()
 
-    AutoReturn = not AutoReturn
+    AutoReturn =
+        not AutoReturn
 
     if AutoReturn then
 
-        AutoButton.Text = "AUTO RETURN: ON"
+        AutoButton.Text =
+            "AUTO RETURN: ON"
 
         AutoButton.BackgroundColor3 =
             Color3.fromRGB(65,35,40)
 
     else
 
-        AutoButton.Text = "AUTO RETURN: OFF"
+        AutoButton.Text =
+            "AUTO RETURN: OFF"
 
         AutoButton.BackgroundColor3 =
             Color3.fromRGB(30,30,34)
@@ -788,35 +1040,40 @@ end)
 
 
 --//====================================================
---// ANTI DROP
+--// ANTI DROP BUTTON
 --//====================================================
 
-local AntiDropButton = CreateButton(
-    235,
-    "ANTI DROP: OFF"
-)
+local AntiDropButton =
+    CreateButton(
+        235,
+        "ANTI DROP: OFF"
+    )
+
 
 AntiDropButton.MouseButton1Click:Connect(function()
 
-    AntiDrop = not AntiDrop
+    AntiDrop =
+        not AntiDrop
 
     if AntiDrop then
 
-        AntiDropButton.Text = "ANTI DROP: ON"
+        AntiDropButton.Text =
+            "ANTI DROP: ON"
 
         AntiDropButton.BackgroundColor3 =
-            Color3.fromRGB(65,35,40)
+            Color3.fromRGB(170,45,45)
 
-        print("[BLOCK] Anti Drop ativado.")
+        print("DropEggRequest: BLOCKED")
 
     else
 
-        AntiDropButton.Text = "ANTI DROP: OFF"
+        AntiDropButton.Text =
+            "ANTI DROP: OFF"
 
         AntiDropButton.BackgroundColor3 =
             Color3.fromRGB(30,30,34)
 
-        print("[BLOCK] Anti Drop desativado.")
+        print("DropEggRequest: UNBLOCKED")
     end
 end)
 
@@ -827,11 +1084,16 @@ end)
 
 local Status = Instance.new("TextLabel")
 
-Status.Size = UDim2.new(1,-24,0,25)
-Status.Position = UDim2.new(0,12,0,280)
+Status.Size =
+    UDim2.new(1,-24,0,25)
+
+Status.Position =
+    UDim2.fromOffset(12,280)
 
 Status.BackgroundTransparency = 1
-Status.Text = "●  Status: Ready"
+
+Status.Text =
+    "●  Status: Ready"
 
 Status.TextColor3 =
     Color3.fromRGB(145,145,150)
@@ -846,42 +1108,56 @@ Status.Parent = Main
 
 
 --//====================================================
---// ANTI DROP HOOK
+--// ANTI DROP
+--// DropEggRequest - Block From Firing
 --//====================================================
 
-local Target
+local Remote =
+    workspace:WaitForChild("Remotes")
+    :WaitForChild("DropEggRequest")
 
+local Blocked = false
+
+-- Mantém Blocked sincronizado com o botão
 task.spawn(function()
 
-    local Remotes =
-        workspace:WaitForChild("Remotes")
+    while task.wait(0.1) do
+        Blocked = AntiDrop
+    end
+end)
 
-    Target =
-        Remotes:WaitForChild("DropEggRequest")
 
-    local oldNamecall
+local oldNamecall
 
-    oldNamecall = hookmetamethod(
+oldNamecall =
+    hookmetamethod(
         game,
         "__namecall",
-        newcclosure(function(self,...)
+        newcclosure(function(self, ...)
 
-            local Method =
+            local method =
                 getnamecallmethod()
 
-            if AntiDrop
-            and self == Target
-            and Method == "FireServer" then
+            -- Mesmo conceito do
+            -- "Block From Firing":
+            -- bloqueia SOMENTE DropEggRequest
+
+            if Blocked
+                and self == Remote
+                and method == "FireServer" then
 
                 return nil
             end
 
-            return oldNamecall(self,...)
+            return oldNamecall(
+                self,
+                ...
+            )
         end)
     )
 
-    print("[BLOCK] DropEggRequest monitorado.")
-end)
+
+print("DropEggRequest: monitorado.")
 
 
 --//====================================================
@@ -889,20 +1165,26 @@ end)
 --//====================================================
 
 ProximityPromptService.PromptTriggered:Connect(
-    function(Prompt, PlayerWhoTriggered)
+    function(
+        Prompt,
+        PlayerWhoTriggered
+    )
 
         if not AutoReturn then
             return
         end
 
         if PlayerWhoTriggered
-        and PlayerWhoTriggered ~= Player then
+            and
+            PlayerWhoTriggered ~= Player then
+
             return
         end
 
         if Returning then
             return
         end
+
 
         local CharacterNow =
             Player.Character
@@ -911,8 +1193,10 @@ ProximityPromptService.PromptTriggered:Connect(
             return
         end
 
+
         local RootNow =
-            CharacterNow:FindFirstChild(
+            CharacterNow:
+            FindFirstChild(
                 "HumanoidRootPart"
             )
 
@@ -920,13 +1204,20 @@ ProximityPromptService.PromptTriggered:Connect(
             return
         end
 
+
         Returning = true
 
         Status.Text =
             "●  Status: Prompt → retornando"
 
+
         local Distance =
-            (RootNow.Position - ReturnPosition).Magnitude
+            (
+                RootNow.Position
+                -
+                ReturnPosition
+            ).Magnitude
+
 
         local Duration =
             math.max(
@@ -934,23 +1225,31 @@ ProximityPromptService.PromptTriggered:Connect(
                 0.05
             )
 
+
         local Tween =
             TweenService:Create(
+
                 RootNow,
+
                 TweenInfo.new(
                     Duration,
                     Enum.EasingStyle.Linear,
                     Enum.EasingDirection.Out
                 ),
+
                 {
                     CFrame =
-                        CFrame.new(ReturnPosition)
+                        CFrame.new(
+                            ReturnPosition
+                        )
                 }
             )
+
 
         Tween:Play()
 
         Tween.Completed:Wait()
+
 
         Returning = false
 
@@ -970,23 +1269,33 @@ task.spawn(function()
 
         if Humanoid then
 
-            -- Mantém exatamente o valor escolhido
-            -- mesmo se outra alteração acontecer.
+            -- Mantém o Speed escolhido
+            -- mesmo se outro script tentar
+            -- modificar o valor.
 
             if Humanoid.WalkSpeed ~= Speed then
-                Humanoid.WalkSpeed = Speed
+
+                Humanoid.WalkSpeed =
+                    Speed
             end
+
+
+            -- Mantém o Jump escolhido.
 
             if Humanoid.UseJumpPower then
 
                 if Humanoid.JumpPower ~= Jump then
-                    Humanoid.JumpPower = Jump
+
+                    Humanoid.JumpPower =
+                        Jump
                 end
 
             else
 
                 if Humanoid.JumpHeight ~= Jump then
-                    Humanoid.JumpHeight = Jump
+
+                    Humanoid.JumpHeight =
+                        Jump
                 end
             end
         end
