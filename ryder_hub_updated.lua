@@ -52,8 +52,8 @@ gui.Parent = playerGui
 --==================================================
 
 local main = Instance.new("Frame")
-main.Size = UDim2.fromOffset(255,460)
-main.Position = UDim2.new(.5,-127,.5,-230)
+main.Size = UDim2.fromOffset(255,410)
+main.Position = UDim2.new(.5,-127,.5,-205)
 main.BackgroundColor3 = Color3.fromRGB(11,11,13)
 main.BorderSizePixel = 0
 main.Parent = gui
@@ -285,20 +285,15 @@ local function createCard(y, name, initialStatus)
             autoReturnEnabled = enabled
         elseif name == "Auto Slap" then
             autoSlapEnabled = enabled
-        elseif name == "Auto Slap TP" then
-            autoSlapTPEnabled = enabled
-            if enabled and not selectedTargetPlayer then
-                -- Abre lista de players
-                task.spawn(function()
-                    showPlayerList()
-                end)
-            end
         elseif name == "Instant Prompt" then
             instantPromptEnabled = enabled
             -- Desativa/ativa todos os ProximityPrompts
             local promptService = game:GetService("ProximityPromptService")
             for _, prompt in pairs(promptService:FindLocalPrompts()) do
                 prompt.Enabled = not enabled
+                if enabled then
+                    prompt.HoldDuration = 0
+                end
             end
         end
     end)
@@ -319,16 +314,10 @@ local autoCard = createCard(82,"Auto Return","inactive")
 local slapCard = createCard(140,"Auto Slap","inactive")
 
 --==================================================
--- AUTO SLAP TP
---==================================================
-
-local slapTPCard = createCard(197,"Auto Slap TP","inactive")
-
---==================================================
 -- INSTANT PROMPT
 --==================================================
 
-local instantPromptCard = createCard(254,"Instant Prompt","inactive")
+local instantPromptCard = createCard(197,"Instant Prompt","inactive")
 
 --==================================================
 -- SLIDER CREATOR
@@ -453,12 +442,79 @@ end
 -- SPEED / JUMP
 --==================================================
 
-createSlider(310,"Speed",selectedSpeed,function(value)
+createSlider(262,"Speed",selectedSpeed,function(value)
     selectedSpeed = value
 end)
 
-createSlider(360,"Jump",selectedJump,function(value)
+createSlider(310,"Jump",selectedJump,function(value)
     selectedJump = value
+end)
+
+--==================================================
+-- AUTO SLAP TP SELECTOR SLIDER
+--==================================================
+
+local slapTPTitle = Instance.new("TextLabel")
+slapTPTitle.BackgroundTransparency = 1
+slapTPTitle.Position = UDim2.fromOffset(19,358)
+slapTPTitle.Size = UDim2.fromOffset(100,17)
+slapTPTitle.Font = Enum.Font.GothamSemibold
+slapTPTitle.TextSize = 10
+slapTPTitle.Text = "Auto Slap TP"
+slapTPTitle.TextColor3 = Color3.fromRGB(190,190,195)
+slapTPTitle.TextXAlignment = Enum.TextXAlignment.Left
+slapTPTitle.Parent = main
+
+local slapTPStatus = Instance.new("TextLabel")
+slapTPStatus.BackgroundTransparency = 1
+slapTPStatus.Position = UDim2.new(1,-58,0,358)
+slapTPStatus.Size = UDim2.fromOffset(39,17)
+slapTPStatus.Font = Enum.Font.GothamBold
+slapTPStatus.TextSize = 10
+slapTPStatus.Text = selectedTargetPlayer and selectedTargetPlayer.Name or "None"
+slapTPStatus.TextColor3 = Color3.fromRGB(190,32,48)
+slapTPStatus.TextXAlignment = Enum.TextXAlignment.Right
+slapTPStatus.Parent = main
+
+local slapTPButton = Instance.new("TextButton")
+slapTPButton.Position = UDim2.fromOffset(20,375)
+slapTPButton.Size = UDim2.new(1,-40,0,24)
+slapTPButton.BackgroundColor3 = Color3.fromRGB(35,35,39)
+slapTPButton.BorderSizePixel = 0
+slapTPButton.Text = selectedTargetPlayer and ("Target: " .. selectedTargetPlayer.Name) or "Click to select target"
+slapTPButton.Font = Enum.Font.GothamSemibold
+slapTPButton.TextSize = 10
+slapTPButton.TextColor3 = Color3.fromRGB(190,190,195)
+slapTPButton.AutoButtonColor = false
+slapTPButton.Parent = main
+
+local slapTPCorner = Instance.new("UICorner")
+slapTPCorner.CornerRadius = UDim.new(0,8)
+slapTPCorner.Parent = slapTPButton
+
+local slapTPStroke = Instance.new("UIStroke")
+slapTPStroke.Color = Color3.fromRGB(52,52,57)
+slapTPStroke.Thickness = 1
+slapTPStroke.Parent = slapTPButton
+
+slapTPButton.MouseButton1Click:Connect(function()
+    showPlayerList()
+end)
+
+slapTPButton.MouseEnter:Connect(function()
+    TweenService:Create(
+        slapTPButton,
+        TweenInfo.new(.1),
+        {BackgroundColor3 = Color3.fromRGB(45,45,50)}
+    ):Play()
+end)
+
+slapTPButton.MouseLeave:Connect(function()
+    TweenService:Create(
+        slapTPButton,
+        TweenInfo.new(.1),
+        {BackgroundColor3 = Color3.fromRGB(35,35,39)}
+    ):Play()
 end)
 
 --==================================================
@@ -467,7 +523,7 @@ end)
 
 local footer = Instance.new("TextLabel")
 footer.BackgroundTransparency = 1
-footer.Position = UDim2.fromOffset(15,436)
+footer.Position = UDim2.fromOffset(15,386)
 footer.Size = UDim2.new(1,-30,0,15)
 footer.Font = Enum.Font.Gotham
 footer.TextSize = 8
@@ -489,11 +545,25 @@ local function showPlayerList()
     listGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     listGui.Parent = playerGui
 
+    -- Fundo transparente para detectar cliques fora
+    local backgroundClick = Instance.new("Frame")
+    backgroundClick.Size = UDim2.fromScale(1,1)
+    backgroundClick.BackgroundColor3 = Color3.fromRGB(0,0,0)
+    backgroundClick.BackgroundTransparency = 0.5
+    backgroundClick.BorderSizePixel = 0
+    backgroundClick.ZIndex = 1
+    backgroundClick.Parent = listGui
+
+    backgroundClick.MouseButton1Click:Connect(function()
+        listGui:Destroy()
+    end)
+
     local listFrame = Instance.new("Frame")
     listFrame.Size = UDim2.fromOffset(200,250)
     listFrame.Position = UDim2.new(.5,-100,.5,-125)
     listFrame.BackgroundColor3 = Color3.fromRGB(11,11,13)
     listFrame.BorderSizePixel = 0
+    listFrame.ZIndex = 2
     listFrame.Parent = listGui
 
     local listCorner = Instance.new("UICorner")
@@ -513,6 +583,7 @@ local function showPlayerList()
     listTitle.TextSize = 14
     listTitle.Text = "Select Target"
     listTitle.TextColor3 = Color3.fromRGB(190,32,48)
+    listTitle.ZIndex = 3
     listTitle.Parent = listFrame
 
     local scrollFrame = Instance.new("ScrollingFrame")
@@ -521,6 +592,7 @@ local function showPlayerList()
     scrollFrame.BackgroundTransparency = 1
     scrollFrame.BorderSizePixel = 0
     scrollFrame.ScrollBarThickness = 6
+    scrollFrame.ZIndex = 3
     scrollFrame.Parent = listFrame
 
     local listLayout = Instance.new("UIListLayout")
@@ -538,6 +610,7 @@ local function showPlayerList()
         btn.Text = targetPlayer.Name
         btn.TextColor3 = Color3.fromRGB(235,235,238)
         btn.AutoButtonColor = false
+        btn.ZIndex = 3
         btn.Parent = scrollFrame
 
         local btnCorner = Instance.new("UICorner")
@@ -547,6 +620,9 @@ local function showPlayerList()
         btn.MouseButton1Click:Connect(function()
             selectedTargetPlayer = targetPlayer
             lastSafePosition = player.Character:FindFirstChild("HumanoidRootPart").Position
+            autoSlapTPEnabled = true
+            slapTPStatus.Text = targetPlayer.Name
+            slapTPButton.Text = "Target: " .. targetPlayer.Name
             listGui:Destroy()
         end)
 
@@ -642,6 +718,7 @@ end
 local function updateInstantPrompts()
     local promptService = game:GetService("ProximityPromptService")
     for _, prompt in pairs(promptService:FindLocalPrompts()) do
+        prompt.HoldDuration = 0
         prompt.Enabled = not instantPromptEnabled
     end
 end
@@ -978,7 +1055,7 @@ floatButton.MouseButton1Click:Connect(function()
             main,
             TweenInfo.new(.38,Enum.EasingStyle.Back,Enum.EasingDirection.Out),
             {
-                Size = UDim2.fromOffset(255,460)
+                Size = UDim2.fromOffset(255,410)
             }
         ):Play()
     end
@@ -1141,6 +1218,6 @@ TweenService:Create(
     main,
     TweenInfo.new(.45,Enum.EasingStyle.Back,Enum.EasingDirection.Out),
     {
-        Size = UDim2.fromOffset(255,460)
+        Size = UDim2.fromOffset(255,410)
     }
 ):Play()
