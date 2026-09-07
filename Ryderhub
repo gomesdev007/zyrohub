@@ -1,0 +1,495 @@
+--// SETTINGS
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local ProximityPromptService = game:GetService("ProximityPromptService")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+
+local WalkSpeed = 16
+local JumpPower = 50
+local ReturnSpeed = 150
+local AutoReturn = false
+local Returning = false
+
+--// CHARACTER
+local Character
+local Humanoid
+local Root
+
+local function UpdateCharacter()
+    Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    Humanoid = Character:WaitForChild("Humanoid")
+    Root = Character:WaitForChild("HumanoidRootPart")
+
+    Humanoid.WalkSpeed = WalkSpeed
+
+    if Humanoid.UseJumpPower then
+        Humanoid.JumpPower = JumpPower
+    else
+        Humanoid.JumpHeight = JumpPower
+    end
+end
+
+UpdateCharacter()
+
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    UpdateCharacter()
+end)
+
+--// FIND PLAYER PLOT
+local function GetMyPlot()
+    local maps = workspace:FindFirstChild("Maps")
+    if not maps then
+        return nil
+    end
+
+    local plots = maps:FindFirstChild("Plots")
+    if not plots then
+        return nil
+    end
+
+    local playerPlot = LocalPlayer:FindFirstChild("Plot")
+
+    if not playerPlot then
+        return nil
+    end
+
+    -- Plot pode ser ObjectValue
+    if playerPlot:IsA("ObjectValue") and playerPlot.Value then
+        return playerPlot.Value
+    end
+
+    -- Plot pode ser StringValue
+    if playerPlot:IsA("StringValue") then
+        local found = plots:FindFirstChild(playerPlot.Value, true)
+        if found then
+            return found
+        end
+    end
+
+    -- Plot pode ser número
+    if playerPlot:IsA("IntValue") or playerPlot:IsA("NumberValue") then
+        for _, plot in ipairs(plots:GetChildren()) do
+            local id = plot:GetAttribute("Plot")
+                or plot:GetAttribute("PlotId")
+                or plot:GetAttribute("Id")
+
+            if id == playerPlot.Value then
+                return plot
+            end
+        end
+    end
+
+    -- Procura pelo nome/atributo do jogador
+    for _, plot in ipairs(plots:GetChildren()) do
+        local owner = plot:GetAttribute("Owner")
+            or plot:GetAttribute("OwnerName")
+            or plot:GetAttribute("Player")
+
+        if owner == LocalPlayer.Name or owner == LocalPlayer.UserId then
+            return plot
+        end
+    end
+
+    return nil
+end
+
+--// FIND POSITION INSIDE PLOT
+local function GetPlotPosition(plot)
+    if not plot then
+        return nil
+    end
+
+    -- Nomes comuns de partes de retorno/base
+    local names = {
+        "Base",
+        "BasePart",
+        "Spawn",
+        "SpawnLocation",
+        "Home",
+        "OwnerSpawn",
+        "PlayerSpawn",
+        "PlotSpawn",
+        "ClaimSpawn",
+        "Teleport",
+        "Return"
+    }
+
+    for _, name in ipairs(names) do
+        local obj = plot:FindFirstChild(name, true)
+
+        if obj then
+            if obj:IsA("BasePart") then
+                return obj.CFrame
+            elseif obj:IsA("Model") and obj.PrimaryPart then
+                return obj.PrimaryPart.CFrame
+            end
+        end
+    end
+
+    if plot:IsA("Model") and plot.PrimaryPart then
+        return plot.PrimaryPart.CFrame
+    end
+
+    -- Último recurso: primeira BasePart encontrada
+    for _, obj in ipairs(plot:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            return obj.CFrame
+        end
+    end
+
+    return nil
+end
+
+--// RETURN TO BASE
+local function ReturnToBase()
+    if Returning or not AutoReturn then
+        return
+    end
+
+    if not Character or not Root then
+        return
+    end
+
+    local plot = GetMyPlot()
+
+    if not plot then
+        warn("[AUTO RETURN] Seu Plot não foi encontrado.")
+        return
+    end
+
+    local targetCFrame = GetPlotPosition(plot)
+
+    if not targetCFrame then
+        warn("[AUTO RETURN] Não encontrei uma posição dentro do seu Plot.")
+        return
+    end
+
+    Returning = true
+
+    -- Pequena altura para não ficar preso no chão
+    targetCFrame = targetCFrame + Vector3.new(0, 3, 0)
+
+    local distance = (Root.Position - targetCFrame.Position).Magnitude
+    local duration = distance / ReturnSpeed
+
+    duration = math.max(duration, 0.05)
+
+    local tween = TweenService:Create(
+        Root,
+        TweenInfo.new(
+            duration,
+            Enum.EasingStyle.Linear,
+            Enum.EasingDirection.Out
+        ),
+        {
+            CFrame = targetCFrame
+        }
+    )
+
+    tween:Play()
+    tween.Completed:Wait()
+
+    Returning = false
+end
+
+--// GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "GomesMovementGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game:GetService("CoreGui")
+
+local Main = Instance.new("Frame")
+Main.Size = UDim2.new(0, 230, 0, 245)
+Main.Position = UDim2.new(0.5, -115, 0.5, -122)
+Main.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+Main.BorderSizePixel = 0
+Main.Parent = ScreenGui
+
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 12)
+Corner.Parent = Main
+
+--// TITLE
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -20, 0, 32)
+Title.Position = UDim2.new(0, 10, 0, 5)
+Title.BackgroundTransparency = 1
+Title.Text = "MOVEMENT"
+Title.TextColor3 = Color3.fromRGB(255,255,255)
+Title.TextSize = 15
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = Main
+
+--// DRAG
+local dragging = false
+local dragStart
+local startPos
+
+Title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+
+        dragging = true
+        dragStart = input.Position
+        startPos = Main.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if not dragging then
+        return
+    end
+
+    if input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch then
+
+        local delta = input.Position - dragStart
+
+        Main.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+--// SLIDER CREATOR
+local function CreateSlider(y, text, min, max, default, callback)
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, -20, 0, 20)
+    Label.Position = UDim2.new(0, 10, 0, y)
+    Label.BackgroundTransparency = 1
+    Label.TextColor3 = Color3.fromRGB(220,220,220)
+    Label.TextSize = 12
+    Label.Font = Enum.Font.Gotham
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Text = text .. ": " .. default
+    Label.Parent = Main
+
+    local Bar = Instance.new("Frame")
+    Bar.Size = UDim2.new(1, -20, 0, 7)
+    Bar.Position = UDim2.new(0, 10, 0, y + 25)
+    Bar.BackgroundColor3 = Color3.fromRGB(45,45,45)
+    Bar.BorderSizePixel = 0
+    Bar.Parent = Main
+
+    local BarCorner = Instance.new("UICorner")
+    BarCorner.CornerRadius = UDim.new(1,0)
+    BarCorner.Parent = Bar
+
+    local Fill = Instance.new("Frame")
+    Fill.BackgroundColor3 = Color3.fromRGB(150,80,255)
+    Fill.BorderSizePixel = 0
+    Fill.Parent = Bar
+
+    local FillCorner = Instance.new("UICorner")
+    FillCorner.CornerRadius = UDim.new(1,0)
+    FillCorner.Parent = Fill
+
+    local Button = Instance.new("TextButton")
+    Button.Size = UDim2.new(0, 16, 0, 16)
+    Button.BackgroundColor3 = Color3.fromRGB(255,255,255)
+    Button.Text = ""
+    Button.AutoButtonColor = false
+    Button.Parent = Bar
+
+    local ButtonCorner = Instance.new("UICorner")
+    ButtonCorner.CornerRadius = UDim.new(1,0)
+    ButtonCorner.Parent = Button
+
+    local value = default
+
+    local function SetValueFromX(x)
+        local relative = math.clamp(
+            (x - Bar.AbsolutePosition.X) / Bar.AbsoluteSize.X,
+            0,
+            1
+        )
+
+        value = math.floor(min + ((max - min) * relative))
+
+        Label.Text = text .. ": " .. value
+
+        Fill.Size = UDim2.new(relative, 0, 1, 0)
+
+        Button.Position = UDim2.new(
+            relative,
+            -8,
+            0.5,
+            -8
+        )
+
+        callback(value)
+    end
+
+    local sliding = false
+
+    Button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+
+            sliding = true
+        end
+    end)
+
+    Bar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+
+            sliding = true
+            SetValueFromX(input.Position.X)
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if sliding and (
+            input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch
+        ) then
+            SetValueFromX(input.Position.X)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+
+            sliding = false
+        end
+    end)
+
+    task.defer(function()
+        SetValueFromX(
+            Bar.AbsolutePosition.X +
+            ((default - min) / (max - min)) * Bar.AbsoluteSize.X
+        )
+    end)
+end
+
+--// WALK SPEED
+CreateSlider(
+    45,
+    "Speed",
+    1,
+    500,
+    16,
+    function(value)
+        WalkSpeed = value
+
+        if Humanoid then
+            Humanoid.WalkSpeed = value
+        end
+    end
+)
+
+--// JUMP
+CreateSlider(
+    100,
+    "Jump",
+    1,
+    500,
+    50,
+    function(value)
+        JumpPower = value
+
+        if Humanoid then
+            if Humanoid.UseJumpPower then
+                Humanoid.JumpPower = value
+            else
+                Humanoid.JumpHeight = value
+            end
+        end
+    end
+)
+
+--// AUTO RETURN BUTTON
+local AutoButton = Instance.new("TextButton")
+AutoButton.Size = UDim2.new(1, -20, 0, 42)
+AutoButton.Position = UDim2.new(0, 10, 0, 160)
+AutoButton.BackgroundColor3 = Color3.fromRGB(35,35,35)
+AutoButton.BorderSizePixel = 0
+AutoButton.Text = "AUTO RETURN: OFF"
+AutoButton.TextColor3 = Color3.fromRGB(255,255,255)
+AutoButton.TextSize = 13
+AutoButton.Font = Enum.Font.GothamBold
+AutoButton.Parent = Main
+
+local AutoCorner = Instance.new("UICorner")
+AutoCorner.CornerRadius = UDim.new(0, 8)
+AutoCorner.Parent = AutoButton
+
+AutoButton.MouseButton1Click:Connect(function()
+    AutoReturn = not AutoReturn
+
+    if AutoReturn then
+        AutoButton.Text = "AUTO RETURN: ON"
+        AutoButton.BackgroundColor3 = Color3.fromRGB(65,35,90)
+    else
+        AutoButton.Text = "AUTO RETURN: OFF"
+        AutoButton.BackgroundColor3 = Color3.fromRGB(35,35,35)
+    end
+end)
+
+--// STATUS
+local Status = Instance.new("TextLabel")
+Status.Size = UDim2.new(1, -20, 0, 25)
+Status.Position = UDim2.new(0, 10, 0, 210)
+Status.BackgroundTransparency = 1
+Status.Text = "Status: Ready"
+Status.TextColor3 = Color3.fromRGB(150,150,150)
+Status.TextSize = 11
+Status.Font = Enum.Font.Gotham
+Status.TextXAlignment = Enum.TextXAlignment.Left
+Status.Parent = Main
+
+--// MONITOR PROMPTS
+ProximityPromptService.PromptTriggered:Connect(function(prompt, playerWhoTriggered)
+
+    if not AutoReturn then
+        return
+    end
+
+    -- Garante que foi o próprio jogador
+    if playerWhoTriggered and playerWhoTriggered ~= LocalPlayer then
+        return
+    end
+
+    Status.Text = "Status: Prompt concluído → retornando..."
+
+    task.spawn(function()
+        ReturnToBase()
+
+        if AutoReturn then
+            Status.Text = "Status: Na sua base"
+        else
+            Status.Text = "Status: Ready"
+        end
+    end)
+end)
+
+--// UPDATE CONSTANT
+task.spawn(function()
+    while task.wait(0.1) do
+        if Humanoid then
+            Humanoid.WalkSpeed = WalkSpeed
+
+            if Humanoid.UseJumpPower then
+                Humanoid.JumpPower = JumpPower
+            else
+                Humanoid.JumpHeight = JumpPower
+            end
+        end
+    end
+end)
