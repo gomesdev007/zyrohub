@@ -30,6 +30,10 @@ local selectedJump = 50
 
 local autoReturnEnabled = false
 local autoSlapEnabled = false
+local instantPromptEnabled = false
+local autoSlapTPEnabled = false
+local selectedTargetPlayer = nil
+local lastSafePosition = nil
 local returning = false
 
 --==================================================
@@ -48,8 +52,8 @@ gui.Parent = playerGui
 --==================================================
 
 local main = Instance.new("Frame")
-main.Size = UDim2.fromOffset(255,350)
-main.Position = UDim2.new(.5,-127,.5,-175)
+main.Size = UDim2.fromOffset(255,460)
+main.Position = UDim2.new(.5,-127,.5,-230)
 main.BackgroundColor3 = Color3.fromRGB(11,11,13)
 main.BorderSizePixel = 0
 main.Parent = gui
@@ -281,6 +285,21 @@ local function createCard(y, name, initialStatus)
             autoReturnEnabled = enabled
         elseif name == "Auto Slap" then
             autoSlapEnabled = enabled
+        elseif name == "Auto Slap TP" then
+            autoSlapTPEnabled = enabled
+            if enabled and not selectedTargetPlayer then
+                -- Abre lista de players
+                task.spawn(function()
+                    showPlayerList()
+                end)
+            end
+        elseif name == "Instant Prompt" then
+            instantPromptEnabled = enabled
+            -- Desativa/ativa todos os ProximityPrompts
+            local promptService = game:GetService("ProximityPromptService")
+            for _, prompt in pairs(promptService:FindLocalPrompts()) do
+                prompt.Enabled = not enabled
+            end
         end
     end)
 
@@ -288,22 +307,28 @@ local function createCard(y, name, initialStatus)
 end
 
 --==================================================
--- TEST
---==================================================
-
-local testCard = createCard(82,"Test","inactive")
-
---==================================================
 -- AUTO RETURN
 --==================================================
 
-local autoCard = createCard(140,"Auto Return","inactive")
+local autoCard = createCard(82,"Auto Return","inactive")
 
 --==================================================
 -- AUTO SLAP (NOVO)
 --==================================================
 
-local slapCard = createCard(197,"Auto Slap","inactive")
+local slapCard = createCard(140,"Auto Slap","inactive")
+
+--==================================================
+-- AUTO SLAP TP
+--==================================================
+
+local slapTPCard = createCard(197,"Auto Slap TP","inactive")
+
+--==================================================
+-- INSTANT PROMPT
+--==================================================
+
+local instantPromptCard = createCard(254,"Instant Prompt","inactive")
 
 --==================================================
 -- SLIDER CREATOR
@@ -428,11 +453,11 @@ end
 -- SPEED / JUMP
 --==================================================
 
-createSlider(262,"Speed",selectedSpeed,function(value)
+createSlider(310,"Speed",selectedSpeed,function(value)
     selectedSpeed = value
 end)
 
-createSlider(324,"Jump",selectedJump,function(value)
+createSlider(360,"Jump",selectedJump,function(value)
     selectedJump = value
 end)
 
@@ -442,7 +467,7 @@ end)
 
 local footer = Instance.new("TextLabel")
 footer.BackgroundTransparency = 1
-footer.Position = UDim2.fromOffset(15,326)
+footer.Position = UDim2.fromOffset(15,436)
 footer.Size = UDim2.new(1,-30,0,15)
 footer.Font = Enum.Font.Gotham
 footer.TextSize = 8
@@ -450,6 +475,176 @@ footer.Text = "ready"
 footer.TextColor3 = Color3.fromRGB(75,75,80)
 footer.TextXAlignment = Enum.TextXAlignment.Center
 footer.Parent = main
+
+--==================================================
+-- PLAYER LIST UI
+--==================================================
+
+local function showPlayerList()
+
+    local listGui = Instance.new("ScreenGui")
+    listGui.Name = "PlayerListGui"
+    listGui.ResetOnSpawn = false
+    listGui.IgnoreGuiInset = true
+    listGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    listGui.Parent = playerGui
+
+    local listFrame = Instance.new("Frame")
+    listFrame.Size = UDim2.fromOffset(200,250)
+    listFrame.Position = UDim2.new(.5,-100,.5,-125)
+    listFrame.BackgroundColor3 = Color3.fromRGB(11,11,13)
+    listFrame.BorderSizePixel = 0
+    listFrame.Parent = listGui
+
+    local listCorner = Instance.new("UICorner")
+    listCorner.CornerRadius = UDim.new(0,12)
+    listCorner.Parent = listFrame
+
+    local listStroke = Instance.new("UIStroke")
+    listStroke.Color = Color3.fromRGB(68,23,30)
+    listStroke.Thickness = 1
+    listStroke.Transparency = .1
+    listStroke.Parent = listFrame
+
+    local listTitle = Instance.new("TextLabel")
+    listTitle.BackgroundTransparency = 1
+    listTitle.Size = UDim2.new(1,0,0,30)
+    listTitle.Font = Enum.Font.GothamBold
+    listTitle.TextSize = 14
+    listTitle.Text = "Select Target"
+    listTitle.TextColor3 = Color3.fromRGB(190,32,48)
+    listTitle.Parent = listFrame
+
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Position = UDim2.fromOffset(0,30)
+    scrollFrame.Size = UDim2.new(1,0,1,-30)
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.BorderSizePixel = 0
+    scrollFrame.ScrollBarThickness = 6
+    scrollFrame.Parent = listFrame
+
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Padding = UDim.new(0,5)
+    listLayout.Parent = scrollFrame
+
+    local function createPlayerButton(targetPlayer)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1,-10,0,30)
+        btn.Position = UDim2.fromOffset(5,0)
+        btn.BackgroundColor3 = Color3.fromRGB(17,17,20)
+        btn.BorderSizePixel = 0
+        btn.Font = Enum.Font.GothamSemibold
+        btn.TextSize = 11
+        btn.Text = targetPlayer.Name
+        btn.TextColor3 = Color3.fromRGB(235,235,238)
+        btn.AutoButtonColor = false
+        btn.Parent = scrollFrame
+
+        local btnCorner = Instance.new("UICorner")
+        btnCorner.CornerRadius = UDim.new(0,8)
+        btnCorner.Parent = btn
+
+        btn.MouseButton1Click:Connect(function()
+            selectedTargetPlayer = targetPlayer
+            lastSafePosition = player.Character:FindFirstChild("HumanoidRootPart").Position
+            listGui:Destroy()
+        end)
+
+        btn.MouseEnter:Connect(function()
+            TweenService:Create(
+                btn,
+                TweenInfo.new(.1),
+                {BackgroundColor3 = Color3.fromRGB(25,25,28)}
+            ):Play()
+        end)
+
+        btn.MouseLeave:Connect(function()
+            TweenService:Create(
+                btn,
+                TweenInfo.new(.1),
+                {BackgroundColor3 = Color3.fromRGB(17,17,20)}
+            ):Play()
+        end)
+    end
+
+    for _, targetPlayer in pairs(Players:GetPlayers()) do
+        if targetPlayer ~= player then
+            createPlayerButton(targetPlayer)
+        end
+    end
+
+    scrollFrame.CanvasSize = UDim2.fromOffset(0, listLayout.AbsoluteContentSize.Y + 10)
+    listLayout.Changed:Connect(function()
+        scrollFrame.CanvasSize = UDim2.fromOffset(0, listLayout.AbsoluteContentSize.Y + 10)
+    end)
+
+end
+
+--==================================================
+-- AUTO SLAP TP FUNCTION
+--==================================================
+
+local function autoSlapTP()
+    if not autoSlapTPEnabled or not selectedTargetPlayer then
+        return
+    end
+
+    local character = player.Character
+    if not character then
+        return
+    end
+
+    local root = character:FindFirstChild("HumanoidRootPart")
+    local targetCharacter = selectedTargetPlayer.Character
+    
+    if not root or not targetCharacter then
+        return
+    end
+
+    local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
+    if not targetRoot then
+        return
+    end
+
+    -- Usa a última posição segura conhecida
+    local returnPos = lastSafePosition
+    
+    -- Teletransporta atrás do player (offset de 3 studs)
+    local behindOffset = (targetRoot.CFrame.LookVector * -3)
+    local tpPos = targetRoot.Position + behindOffset
+    root.CFrame = CFrame.new(tpPos)
+
+    -- Aguarda um frame para o teleporte processar
+    task.wait(0.05)
+
+    -- Dispara o remote
+    local event = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+    if event then
+        local slapRemote = event:FindFirstChild("SlapHand")
+        if slapRemote then
+            pcall(function()
+                slapRemote:FireServer(selectedTargetPlayer)
+            end)
+        end
+    end
+
+    -- Aguarda um frame
+    task.wait(0.05)
+
+    -- Volta para a posição anterior
+    root.CFrame = CFrame.new(returnPos)
+end
+
+--==================================================
+-- INSTANT PROMPT FUNCTION
+--==================================================
+
+local function updateInstantPrompts()
+    local promptService = game:GetService("ProximityPromptService")
+    for _, prompt in pairs(promptService:FindLocalPrompts()) do
+        prompt.Enabled = not instantPromptEnabled
+    end
+end
 
 --==================================================
 -- AUTO SLAP FUNCTION
@@ -613,6 +808,51 @@ task.spawn(function()
 end)
 
 --==================================================
+-- AUTO SLAP TP LOOP (A CADA 4 SEGUNDOS)
+--==================================================
+
+task.spawn(function()
+    while gui.Parent do
+        task.wait(4)
+        if autoSlapTPEnabled and selectedTargetPlayer then
+            autoSlapTP()
+        end
+    end
+end)
+
+--==================================================
+-- SAFE POSITION UPDATE LOOP (A CADA 1 SEGUNDO)
+--==================================================
+
+task.spawn(function()
+    while gui.Parent do
+        task.wait(1)
+        if autoSlapTPEnabled and selectedTargetPlayer then
+            local character = player.Character
+            if character then
+                local root = character:FindFirstChild("HumanoidRootPart")
+                if root then
+                    lastSafePosition = root.Position
+                end
+            end
+        end
+    end
+end)
+
+--==================================================
+-- INSTANT PROMPT MONITORING LOOP
+--==================================================
+
+task.spawn(function()
+    while gui.Parent do
+        task.wait(0.1)
+        if instantPromptEnabled then
+            updateInstantPrompts()
+        end
+    end
+end)
+
+--==================================================
 -- FORCE SPEED / JUMP
 --==================================================
 
@@ -738,7 +978,7 @@ floatButton.MouseButton1Click:Connect(function()
             main,
             TweenInfo.new(.38,Enum.EasingStyle.Back,Enum.EasingDirection.Out),
             {
-                Size = UDim2.fromOffset(255,350)
+                Size = UDim2.fromOffset(255,460)
             }
         ):Play()
     end
@@ -901,6 +1141,6 @@ TweenService:Create(
     main,
     TweenInfo.new(.45,Enum.EasingStyle.Back,Enum.EasingDirection.Out),
     {
-        Size = UDim2.fromOffset(255,350)
+        Size = UDim2.fromOffset(255,460)
     }
 ):Play()
