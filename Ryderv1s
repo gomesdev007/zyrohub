@@ -1,0 +1,658 @@
+--// Ryder hub
+--// creator: gomesemcall
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local ProximityPromptService = game:GetService("ProximityPromptService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+pcall(function()
+    local old = playerGui:FindFirstChild("RyderHub")
+    if old then
+        old:Destroy()
+    end
+end)
+
+--==================================================
+-- CONFIG
+--==================================================
+
+local RETURN_POSITION = Vector3.new(5.12, 1.06, -5.56)
+local RETURN_SPEED = 100
+
+local savedSpeed = 16
+local savedJump = 50
+
+local autoReturn = false
+local returning = false
+
+--==================================================
+-- GUI
+--==================================================
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "RyderHub"
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.Parent = playerGui
+
+local Main = Instance.new("Frame")
+Main.Size = UDim2.new(0, 270, 0, 310)
+Main.Position = UDim2.new(0.5, -135, 0.5, -155)
+Main.BackgroundColor3 = Color3.fromRGB(13, 13, 16)
+Main.BorderSizePixel = 0
+Main.Parent = gui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 16)
+mainCorner.Parent = Main
+
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = Color3.fromRGB(45, 45, 52)
+mainStroke.Thickness = 1
+mainStroke.Transparency = 0.15
+mainStroke.Parent = Main
+
+-- sombra
+local shadow = Instance.new("Frame")
+shadow.Size = UDim2.new(1, 10, 1, 10)
+shadow.Position = UDim2.new(0, -5, 0, 5)
+shadow.BackgroundTransparency = 1
+shadow.ZIndex = 0
+shadow.Parent = Main
+
+--==================================================
+-- DRAG MAIN
+--==================================================
+
+local dragging = false
+local dragStart
+local startPos
+
+local function updateDrag(input)
+    local delta = input.Position - dragStart
+
+    Main.Position = UDim2.new(
+        startPos.X.Scale,
+        startPos.X.Offset + delta.X,
+        startPos.Y.Scale,
+        startPos.Y.Offset + delta.Y
+    )
+end
+
+Main.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+
+        dragging = true
+        dragStart = input.Position
+        startPos = Main.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (
+        input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch
+    ) then
+        updateDrag(input)
+    end
+end)
+
+--==================================================
+-- TITLE
+--==================================================
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -30, 0, 32)
+title.Position = UDim2.new(0, 15, 0, 12)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.TextSize = 21
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Text = "Ryder hub"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Parent = Main
+
+-- color Ryder
+local titleRed = Instance.new("TextLabel")
+titleRed.Size = UDim2.new(0, 65, 1, 0)
+titleRed.Position = UDim2.new(0, 15, 0, 0)
+titleRed.BackgroundTransparency = 1
+titleRed.Font = Enum.Font.GothamBold
+titleRed.TextSize = 21
+titleRed.Text = "Ryder"
+titleRed.TextColor3 = Color3.fromRGB(235, 45, 55)
+titleRed.TextXAlignment = Enum.TextXAlignment.Left
+titleRed.Parent = Main
+
+local titleHub = Instance.new("TextLabel")
+titleHub.Size = UDim2.new(0, 55, 1, 0)
+titleHub.Position = UDim2.new(0, 80, 0, 0)
+titleHub.BackgroundTransparency = 1
+titleHub.Font = Enum.Font.GothamBold
+titleHub.TextSize = 21
+titleHub.Text = " hub"
+titleHub.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleHub.TextXAlignment = Enum.TextXAlignment.Left
+titleHub.Parent = Main
+
+local creator = Instance.new("TextLabel")
+creator.Size = UDim2.new(1, -30, 0, 18)
+creator.Position = UDim2.new(0, 15, 0, 39)
+creator.BackgroundTransparency = 1
+creator.Font = Enum.Font.Gotham
+creator.TextSize = 11
+creator.Text = "creator: gomesemcall"
+creator.TextColor3 = Color3.fromRGB(125, 125, 135)
+creator.TextXAlignment = Enum.TextXAlignment.Left
+creator.Parent = Main
+
+--==================================================
+-- FUNÇÃO CRIAR TOGGLE
+--==================================================
+
+local function createToggle(y, name, callback)
+
+    local holder = Instance.new("Frame")
+    holder.Size = UDim2.new(1, -30, 0, 43)
+    holder.Position = UDim2.new(0, 15, 0, y)
+    holder.BackgroundColor3 = Color3.fromRGB(19, 19, 23)
+    holder.BorderSizePixel = 0
+    holder.Parent = Main
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = holder
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -65, 1, 0)
+    label.Position = UDim2.new(0, 12, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.GothamMedium
+    label.TextSize = 13
+    label.Text = name
+    label.TextColor3 = Color3.fromRGB(235, 235, 240)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = holder
+
+    local status = Instance.new("TextLabel")
+    status.Size = UDim2.new(0, 35, 1, 0)
+    status.Position = UDim2.new(1, -76, 0, 0)
+    status.BackgroundTransparency = 1
+    status.Font = Enum.Font.Gotham
+    status.TextSize = 9
+    status.Text = "OFF"
+    status.TextColor3 = Color3.fromRGB(110, 110, 118)
+    status.Parent = holder
+
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0, 38, 0, 20)
+    button.Position = UDim2.new(1, -48, 0.5, -10)
+    button.BackgroundColor3 = Color3.fromRGB(48, 48, 55)
+    button.Text = ""
+    button.AutoButtonColor = false
+    button.Parent = holder
+
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(1, 0)
+    buttonCorner.Parent = button
+
+    local dot = Instance.new("Frame")
+    dot.Size = UDim2.new(0, 14, 0, 14)
+    dot.Position = UDim2.new(0, 3, 0.5, -7)
+    dot.BackgroundColor3 = Color3.fromRGB(180, 180, 185)
+    dot.BorderSizePixel = 0
+    dot.Parent = button
+
+    local dotCorner = Instance.new("UICorner")
+    dotCorner.CornerRadius = UDim.new(1, 0)
+    dotCorner.Parent = dot
+
+    local enabled = false
+
+    button.MouseButton1Click:Connect(function()
+        enabled = not enabled
+
+        if enabled then
+            status.Text = "ON"
+            status.TextColor3 = Color3.fromRGB(235, 45, 55)
+
+            TweenService:Create(
+                button,
+                TweenInfo.new(0.15),
+                {BackgroundColor3 = Color3.fromRGB(95, 25, 30)}
+            ):Play()
+
+            TweenService:Create(
+                dot,
+                TweenInfo.new(0.15),
+                {
+                    Position = UDim2.new(1, -17, 0.5, -7),
+                    BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                }
+            ):Play()
+        else
+            status.Text = "OFF"
+            status.TextColor3 = Color3.fromRGB(110, 110, 118)
+
+            TweenService:Create(
+                button,
+                TweenInfo.new(0.15),
+                {BackgroundColor3 = Color3.fromRGB(48, 48, 55)}
+            ):Play()
+
+            TweenService:Create(
+                dot,
+                TweenInfo.new(0.15),
+                {
+                    Position = UDim2.new(0, 3, 0.5, -7),
+                    BackgroundColor3 = Color3.fromRGB(180, 180, 185)
+                }
+            ):Play()
+        end
+
+        callback(enabled)
+    end)
+
+    return holder
+end
+
+--==================================================
+-- SLIDER
+--==================================================
+
+local function createSlider(y, name, minValue, maxValue, defaultValue, callback)
+
+    local holder = Instance.new("Frame")
+    holder.Size = UDim2.new(1, -30, 0, 55)
+    holder.Position = UDim2.new(0, 15, 0, y)
+    holder.BackgroundColor3 = Color3.fromRGB(19, 19, 23)
+    holder.BorderSizePixel = 0
+    holder.Parent = Main
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = holder
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.5, 0, 0, 20)
+    label.Position = UDim2.new(0, 12, 0, 7)
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.GothamMedium
+    label.TextSize = 12
+    label.Text = name
+    label.TextColor3 = Color3.fromRGB(225, 225, 230)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = holder
+
+    local valueLabel = Instance.new("TextLabel")
+    valueLabel.Size = UDim2.new(0.35, 0, 0, 20)
+    valueLabel.Position = UDim2.new(0.63, 0, 0, 7)
+    valueLabel.BackgroundTransparency = 1
+    valueLabel.Font = Enum.Font.GothamBold
+    valueLabel.TextSize = 12
+    valueLabel.Text = tostring(defaultValue)
+    valueLabel.TextColor3 = Color3.fromRGB(235, 45, 55)
+    valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+    valueLabel.Parent = holder
+
+    local track = Instance.new("Frame")
+    track.Size = UDim2.new(1, -24, 0, 4)
+    track.Position = UDim2.new(0, 12, 1, -14)
+    track.BackgroundColor3 = Color3.fromRGB(45, 45, 52)
+    track.BorderSizePixel = 0
+    track.Parent = holder
+
+    local trackCorner = Instance.new("UICorner")
+    trackCorner.CornerRadius = UDim.new(1, 0)
+    trackCorner.Parent = track
+
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new(
+        (defaultValue - minValue) / (maxValue - minValue),
+        0,
+        1,
+        0
+    )
+    fill.BackgroundColor3 = Color3.fromRGB(235, 45, 55)
+    fill.BorderSizePixel = 0
+    fill.Parent = track
+
+    local fillCorner = Instance.new("UICorner")
+    fillCorner.CornerRadius = UDim.new(1, 0)
+    fillCorner.Parent = fill
+
+    local knob = Instance.new("Frame")
+    knob.Size = UDim2.new(0, 11, 0, 11)
+    knob.AnchorPoint = Vector2.new(0.5, 0.5)
+    knob.Position = UDim2.new(
+        (defaultValue - minValue) / (maxValue - minValue),
+        0,
+        0.5,
+        0
+    )
+    knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    knob.BorderSizePixel = 0
+    knob.Parent = track
+
+    local knobCorner = Instance.new("UICorner")
+    knobCorner.CornerRadius = UDim.new(1, 0)
+    knobCorner.Parent = knob
+
+    local draggingSlider = false
+
+    local function setValueFromX(x)
+        local relative = math.clamp(
+            (x - track.AbsolutePosition.X) / track.AbsoluteSize.X,
+            0,
+            1
+        )
+
+        local value = math.floor(
+            minValue + ((maxValue - minValue) * relative)
+        )
+
+        valueLabel.Text = tostring(value)
+
+        fill.Size = UDim2.new(relative, 0, 1, 0)
+        knob.Position = UDim2.new(relative, 0, 0.5, 0)
+
+        callback(value)
+    end
+
+    track.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+
+            draggingSlider = true
+            setValueFromX(input.Position.X)
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if draggingSlider and (
+            input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch
+        ) then
+            setValueFromX(input.Position.X)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            draggingSlider = false
+        end
+    end)
+
+    return holder
+end
+
+--==================================================
+-- CONTROLES
+--==================================================
+
+createToggle(68, "Test", function(enabled)
+    -- visual apenas
+end)
+
+createToggle(116, "Auto Return", function(enabled)
+    autoReturn = enabled
+end)
+
+createSlider(164, "Speed", 0, 500, savedSpeed, function(value)
+    savedSpeed = value
+end)
+
+createSlider(224, "Jump", 0, 500, savedJump, function(value)
+    savedJump = value
+end)
+
+--==================================================
+-- FOOTER
+--==================================================
+
+local footer = Instance.new("TextLabel")
+footer.Size = UDim2.new(1, -30, 0, 18)
+footer.Position = UDim2.new(0, 15, 1, -22)
+footer.BackgroundTransparency = 1
+footer.Font = Enum.Font.Gotham
+footer.TextSize = 9
+footer.Text = "Ryder hub • client"
+footer.TextColor3 = Color3.fromRGB(90, 90, 98)
+footer.TextXAlignment = Enum.TextXAlignment.Center
+footer.Parent = Main
+
+--==================================================
+-- AUTO RETURN
+--==================================================
+
+local function getCharacter()
+    local character = player.Character
+    if not character then
+        return nil
+    end
+
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    local root = character:FindFirstChild("HumanoidRootPart")
+
+    if not humanoid or not root then
+        return nil
+    end
+
+    return character, humanoid, root
+end
+
+local function doAutoReturn()
+    if not autoReturn then
+        return
+    end
+
+    if returning then
+        return
+    end
+
+    local character, humanoid, root = getCharacter()
+
+    if not character or humanoid.Health <= 0 then
+        return
+    end
+
+    returning = true
+
+    local distance = (root.Position - RETURN_POSITION).Magnitude
+    local duration = math.max(distance / RETURN_SPEED, 0.05)
+
+    local tween = TweenService:Create(
+        root,
+        TweenInfo.new(
+            duration,
+            Enum.EasingStyle.Linear,
+            Enum.EasingDirection.Out
+        ),
+        {
+            CFrame = CFrame.new(RETURN_POSITION)
+        }
+    )
+
+    tween:Play()
+
+    tween.Completed:Connect(function()
+        returning = false
+    end)
+end
+
+-- Detecta qualquer ProximityPrompt completado
+ProximityPromptService.PromptTriggered:Connect(function(prompt, triggeringPlayer)
+
+    if triggeringPlayer and triggeringPlayer ~= player then
+        return
+    end
+
+    if not autoReturn then
+        return
+    end
+
+    task.spawn(doAutoReturn)
+end)
+
+--==================================================
+-- SPEED / JUMP FORCE UPDATE
+--==================================================
+
+task.spawn(function()
+
+    while gui.Parent do
+
+        local character = player.Character
+
+        if character then
+
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+
+            if humanoid and humanoid.Health > 0 then
+
+                -- força Speed continuamente
+                if humanoid.WalkSpeed ~= savedSpeed then
+                    humanoid.WalkSpeed = savedSpeed
+                end
+
+                -- força Jump continuamente
+                if humanoid.UseJumpPower then
+                    if humanoid.JumpPower ~= savedJump then
+                        humanoid.JumpPower = savedJump
+                    end
+                else
+                    if humanoid.JumpHeight ~= savedJump then
+                        humanoid.JumpHeight = savedJump
+                    end
+                end
+
+            end
+        end
+
+        task.wait(0.05)
+    end
+
+end)
+
+--==================================================
+-- RESPAWN
+--==================================================
+
+player.CharacterAdded:Connect(function(character)
+
+    local humanoid = character:WaitForChild("Humanoid", 5)
+
+    if humanoid then
+        task.wait(0.2)
+
+        humanoid.WalkSpeed = savedSpeed
+
+        if humanoid.UseJumpPower then
+            humanoid.JumpPower = savedJump
+        else
+            humanoid.JumpHeight = savedJump
+        end
+    end
+
+end)
+
+--==================================================
+-- FLOATING BUTTON
+--==================================================
+
+local Floating = Instance.new("ImageButton")
+Floating.Name = "RyderFloatingButton"
+Floating.Size = UDim2.new(0, 48, 0, 48)
+Floating.Position = UDim2.new(0, 12, 0.5, -24)
+Floating.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+Floating.BorderSizePixel = 0
+Floating.Image = "rbxassetid://85225614638434"
+Floating.ScaleType = Enum.ScaleType.Crop
+Floating.AutoButtonColor = false
+Floating.Parent = gui
+
+local floatCorner = Instance.new("UICorner")
+floatCorner.CornerRadius = UDim.new(1, 0)
+floatCorner.Parent = Floating
+
+local floatStroke = Instance.new("UIStroke")
+floatStroke.Color = Color3.fromRGB(235, 45, 55)
+floatStroke.Thickness = 2
+floatStroke.Parent = Floating
+
+--==================================================
+-- FLOATING BUTTON DRAG + CLICK
+--==================================================
+
+local floatDragging = false
+local floatMoved = false
+local floatDragStart
+local floatStartPos
+
+Floating.InputBegan:Connect(function(input)
+
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+
+        floatDragging = true
+        floatMoved = false
+        floatDragStart = input.Position
+        floatStartPos = Floating.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                floatDragging = false
+            end
+        end)
+
+    end
+
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+
+    if not floatDragging then
+        return
+    end
+
+    if input.UserInputType ~= Enum.UserInputType.MouseMovement
+    and input.UserInputType ~= Enum.UserInputType.Touch then
+        return
+    end
+
+    local delta = input.Position - floatDragStart
+
+    if math.abs(delta.X) > 5 or math.abs(delta.Y) > 5 then
+        floatMoved = true
+    end
+
+    Floating.Position = UDim2.new(
+        floatStartPos.X.Scale,
+        floatStartPos.X.Offset + delta.X,
+        floatStartPos.Y.Scale,
+        floatStartPos.Y.Offset + delta.Y
+    )
+
+end)
+
+Floating.MouseButton1Click:Connect(function()
+
+    if floatMoved then
+        return
+    end
+
+    Main.Visible = not Main.Visible
+
+end)
