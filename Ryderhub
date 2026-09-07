@@ -1,19 +1,22 @@
-
---//====================================================
---// MOVEMENT + AUTO RETURN + ANTI DROP
---// BY GOMES
---//===================================================
+--//========================================================
+--// RYDERHUB
+--// Owner: gomescallpod
+--//========================================================
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local ProximityPromptService = game:GetService("ProximityPromptService")
 local UserInputService = game:GetService("UserInputService")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 
 local Player = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
 
---// CONFIG
-local Speed = 16
-local Jump = 50
+--========================================================
+-- CONFIG
+--========================================================
+
+local SpeedValue = 16
+local JumpValue = 50
 
 local ReturnSpeed = 150
 local ReturnPosition = Vector3.new(0.46, 1.06, -12.08)
@@ -21,8 +24,12 @@ local ReturnPosition = Vector3.new(0.46, 1.06, -12.08)
 local AutoReturn = false
 local AntiDrop = false
 local Returning = false
+local InterfaceOpen = true
 
---// CHARACTER
+--========================================================
+-- CHARACTER
+--========================================================
+
 local Character
 local Humanoid
 local Root
@@ -33,64 +40,128 @@ local function UpdateCharacter()
     Humanoid = Character:WaitForChild("Humanoid")
     Root = Character:WaitForChild("HumanoidRootPart")
 
-    Humanoid.WalkSpeed = Speed
+    Humanoid.WalkSpeed = SpeedValue
 
     if Humanoid.UseJumpPower then
-        Humanoid.JumpPower = Jump
+        Humanoid.JumpPower = JumpValue
+    else
+        Humanoid.JumpHeight = JumpValue
     end
 end
 
 UpdateCharacter()
 
 Player.CharacterAdded:Connect(function()
-    task.wait(0.5)
+    task.wait(0.4)
     UpdateCharacter()
 end)
 
-
---//====================================================
---// GUI
---//====================================================
+--========================================================
+-- GUI
+--========================================================
 
 local Gui = Instance.new("ScreenGui")
-Gui.Name = "GomesMovement"
+Gui.Name = "Ryderhub"
 Gui.ResetOnSpawn = false
-Gui.Parent = game:GetService("CoreGui")
+Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+Gui.Parent = CoreGui
+
+--========================================================
+-- FLOATING BUTTON
+--========================================================
+
+local FloatButton = Instance.new("ImageButton")
+FloatButton.Name = "RyderhubButton"
+FloatButton.Size = UDim2.fromOffset(48,48)
+FloatButton.Position = UDim2.new(0,15,0.5,-24)
+FloatButton.BackgroundColor3 = Color3.fromRGB(18,18,18)
+FloatButton.BorderSizePixel = 0
+FloatButton.AutoButtonColor = false
+FloatButton.Image = "rbxassetid://71571085068909"
+FloatButton.ScaleType = Enum.ScaleType.Crop
+FloatButton.Parent = Gui
+
+local FloatCorner = Instance.new("UICorner")
+FloatCorner.CornerRadius = UDim.new(1,0)
+FloatCorner.Parent = FloatButton
+
+local FloatStroke = Instance.new("UIStroke")
+FloatStroke.Thickness = 1.5
+FloatStroke.Transparency = 0.25
+FloatStroke.Color = Color3.fromRGB(130,130,130)
+FloatStroke.Parent = FloatButton
+
+local FloatScale = Instance.new("UIScale")
+FloatScale.Scale = 1
+FloatScale.Parent = FloatButton
+
+--========================================================
+-- MAIN
+--========================================================
 
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 230, 0, 285)
-Main.Position = UDim2.new(0.5, -115, 0.5, -142)
-Main.BackgroundColor3 = Color3.fromRGB(15,15,15)
+Main.Name = "Main"
+Main.Size = UDim2.fromOffset(250,310)
+Main.Position = UDim2.new(0.5,-125,0.5,-155)
+Main.BackgroundColor3 = Color3.fromRGB(13,13,15)
 Main.BorderSizePixel = 0
+Main.ClipsDescendants = true
 Main.Parent = Gui
 
 local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0,12)
+MainCorner.CornerRadius = UDim.new(0,15)
 MainCorner.Parent = Main
 
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Thickness = 1
+MainStroke.Transparency = 0.55
+MainStroke.Color = Color3.fromRGB(80,80,85)
+MainStroke.Parent = Main
 
---// TITLE
+local MainScale = Instance.new("UIScale")
+MainScale.Scale = 1
+MainScale.Parent = Main
+
+--========================================================
+-- HEADER
+--========================================================
+
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1,0,0,58)
+Header.BackgroundTransparency = 1
+Header.Parent = Main
+
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1,-20,0,30)
-Title.Position = UDim2.new(0,10,0,5)
+Title.Size = UDim2.new(1,-30,0,27)
+Title.Position = UDim2.fromOffset(15,7)
 Title.BackgroundTransparency = 1
-Title.Text = "MOVEMENT"
-Title.TextColor3 = Color3.fromRGB(255,255,255)
-Title.TextSize = 15
+Title.Text = "Ryderhub"
+Title.TextColor3 = Color3.fromRGB(245,245,245)
+Title.TextSize = 18
 Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = Main
+Title.Parent = Header
 
+local Owner = Instance.new("TextLabel")
+Owner.Size = UDim2.new(1,-30,0,18)
+Owner.Position = UDim2.fromOffset(16,32)
+Owner.BackgroundTransparency = 1
+Owner.Text = "Owner: gomescallpod"
+Owner.TextColor3 = Color3.fromRGB(125,125,130)
+Owner.TextSize = 9
+Owner.Font = Enum.Font.Gotham
+Owner.TextXAlignment = Enum.TextXAlignment.Left
+Owner.Parent = Header
 
---//====================================================
---// DRAG MOBILE + PC
---//====================================================
+--========================================================
+-- DRAG
+--========================================================
 
 local Dragging = false
 local DragStart
 local StartPosition
 
-Title.InputBegan:Connect(function(Input)
+Header.InputBegan:Connect(function(Input)
 
     if Input.UserInputType == Enum.UserInputType.MouseButton1
     or Input.UserInputType == Enum.UserInputType.Touch then
@@ -98,14 +169,6 @@ Title.InputBegan:Connect(function(Input)
         Dragging = true
         DragStart = Input.Position
         StartPosition = Main.Position
-
-        Input.Changed:Connect(function()
-
-            if Input.UserInputState == Enum.UserInputState.End then
-                Dragging = false
-            end
-
-        end)
     end
 end)
 
@@ -129,37 +192,61 @@ UserInputService.InputChanged:Connect(function(Input)
     end
 end)
 
+UserInputService.InputEnded:Connect(function(Input)
 
---//====================================================
---// SLIDER
---//====================================================
+    if Input.UserInputType == Enum.UserInputType.MouseButton1
+    or Input.UserInputType == Enum.UserInputType.Touch then
 
-local function CreateSlider(Y, Name, Min, Max, Default, Callback)
+        Dragging = false
+    end
+end)
+
+--========================================================
+-- SLIDER
+--========================================================
+
+local function CreateSlider(Y, Name, Minimum, Maximum, Default, Callback)
+
+    local Holder = Instance.new("Frame")
+    Holder.Size = UDim2.new(1,-30,0,58)
+    Holder.Position = UDim2.fromOffset(15,Y)
+    Holder.BackgroundTransparency = 1
+    Holder.Parent = Main
 
     local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1,-20,0,20)
-    Label.Position = UDim2.new(0,10,0,Y)
+    Label.Size = UDim2.new(0.6,0,0,20)
     Label.BackgroundTransparency = 1
-    Label.Text = Name .. ": " .. Default
-    Label.TextColor3 = Color3.fromRGB(220,220,220)
-    Label.TextSize = 12
-    Label.Font = Enum.Font.Gotham
+    Label.Text = Name
+    Label.TextColor3 = Color3.fromRGB(210,210,215)
+    Label.TextSize = 11
+    Label.Font = Enum.Font.GothamMedium
     Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = Main
+    Label.Parent = Holder
+
+    local ValueLabel = Instance.new("TextLabel")
+    ValueLabel.Size = UDim2.new(0.4,0,0,20)
+    ValueLabel.Position = UDim2.new(0.6,0,0,0)
+    ValueLabel.BackgroundTransparency = 1
+    ValueLabel.Text = tostring(Default)
+    ValueLabel.TextColor3 = Color3.fromRGB(170,115,255)
+    ValueLabel.TextSize = 11
+    ValueLabel.Font = Enum.Font.GothamBold
+    ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
+    ValueLabel.Parent = Holder
 
     local Bar = Instance.new("Frame")
-    Bar.Size = UDim2.new(1,-20,0,7)
-    Bar.Position = UDim2.new(0,10,0,Y+25)
-    Bar.BackgroundColor3 = Color3.fromRGB(45,45,45)
+    Bar.Size = UDim2.new(1,0,0,7)
+    Bar.Position = UDim2.fromOffset(0,30)
+    Bar.BackgroundColor3 = Color3.fromRGB(38,38,42)
     Bar.BorderSizePixel = 0
-    Bar.Parent = Main
+    Bar.Parent = Holder
 
     local BarCorner = Instance.new("UICorner")
     BarCorner.CornerRadius = UDim.new(1,0)
     BarCorner.Parent = Bar
 
     local Fill = Instance.new("Frame")
-    Fill.BackgroundColor3 = Color3.fromRGB(145,75,255)
+    Fill.BackgroundColor3 = Color3.fromRGB(145,80,255)
     Fill.BorderSizePixel = 0
     Fill.Parent = Bar
 
@@ -168,32 +255,45 @@ local function CreateSlider(Y, Name, Min, Max, Default, Callback)
     FillCorner.Parent = Fill
 
     local Knob = Instance.new("TextButton")
-    Knob.Size = UDim2.new(0,16,0,16)
+    Knob.Size = UDim2.fromOffset(18,18)
     Knob.AnchorPoint = Vector2.new(0.5,0.5)
-    Knob.BackgroundColor3 = Color3.fromRGB(255,255,255)
+    Knob.Position = UDim2.new(
+        (Default-Minimum)/(Maximum-Minimum),
+        0,
+        0.5,
+        0
+    )
+    Knob.BackgroundColor3 = Color3.fromRGB(245,245,245)
+    Knob.BorderSizePixel = 0
     Knob.Text = ""
+    Knob.AutoButtonColor = false
     Knob.Parent = Bar
 
     local KnobCorner = Instance.new("UICorner")
     KnobCorner.CornerRadius = UDim.new(1,0)
     KnobCorner.Parent = Knob
 
+    local KnobScale = Instance.new("UIScale")
+    KnobScale.Parent = Knob
+
     local Sliding = false
 
     local function SetValue(X)
 
         local Percent = math.clamp(
-            (X - Bar.AbsolutePosition.X) /
+            (X-Bar.AbsolutePosition.X) /
             Bar.AbsoluteSize.X,
             0,
             1
         )
 
         local Value = math.floor(
-            Min + ((Max-Min) * Percent)
+            Minimum + ((Maximum-Minimum)*Percent)
         )
 
-        Label.Text = Name .. ": " .. Value
+        Value = math.clamp(Value,Minimum,Maximum)
+
+        ValueLabel.Text = tostring(Value)
 
         Fill.Size = UDim2.new(
             Percent,
@@ -209,7 +309,31 @@ local function CreateSlider(Y, Name, Min, Max, Default, Callback)
             0
         )
 
+        -- animação do botão
+        TweenService:Create(
+            KnobScale,
+            TweenInfo.new(0.08,Enum.EasingStyle.Quad),
+            {Scale = 1.25}
+        ):Play()
+
+        task.delay(0.08,function()
+
+            TweenService:Create(
+                KnobScale,
+                TweenInfo.new(0.12,Enum.EasingStyle.Quad),
+                {Scale = 1}
+            ):Play()
+
+        end)
+
         Callback(Value)
+    end
+
+    local function Start(Input)
+
+        Sliding = true
+
+        SetValue(Input.Position.X)
     end
 
     Knob.InputBegan:Connect(function(Input)
@@ -217,7 +341,7 @@ local function CreateSlider(Y, Name, Min, Max, Default, Callback)
         if Input.UserInputType == Enum.UserInputType.MouseButton1
         or Input.UserInputType == Enum.UserInputType.Touch then
 
-            Sliding = true
+            Start(Input)
         end
     end)
 
@@ -226,8 +350,7 @@ local function CreateSlider(Y, Name, Min, Max, Default, Callback)
         if Input.UserInputType == Enum.UserInputType.MouseButton1
         or Input.UserInputType == Enum.UserInputType.Touch then
 
-            Sliding = true
-            SetValue(Input.Position.X)
+            Start(Input)
         end
     end)
 
@@ -253,93 +376,114 @@ local function CreateSlider(Y, Name, Min, Max, Default, Callback)
         end
     end)
 
-    task.defer(function()
-
-        local Percent = (Default-Min)/(Max-Min)
-
-        Fill.Size = UDim2.new(Percent,0,1,0)
-
-        Knob.Position = UDim2.new(
-            Percent,
-            0,
-            0.5,
-            0
-        )
-    end)
+    return {
+        Label = ValueLabel,
+        Fill = Fill,
+        Knob = Knob
+    }
 end
 
+--========================================================
+-- SPEED
+--========================================================
 
---// SPEED
 CreateSlider(
-    45,
-    "SPEED",
+    70,
+    "WALK SPEED",
     1,
     500,
-    16,
+    SpeedValue,
     function(Value)
 
-        Speed = Value
+        -- O valor escolhido vira o NOVO valor oficial.
+        SpeedValue = Value
 
         if Humanoid then
-            Humanoid.WalkSpeed = Value
+            Humanoid.WalkSpeed = SpeedValue
         end
     end
 )
 
+--========================================================
+-- JUMP
+--========================================================
 
---// JUMP
 CreateSlider(
-    100,
-    "JUMP",
+    130,
+    "JUMP POWER",
     1,
     500,
-    50,
+    JumpValue,
     function(Value)
 
-        Jump = Value
+        -- O valor escolhido vira o NOVO valor oficial.
+        JumpValue = Value
 
         if Humanoid then
 
             if Humanoid.UseJumpPower then
-                Humanoid.JumpPower = Value
+                Humanoid.JumpPower = JumpValue
             else
-                Humanoid.JumpHeight = Value
+                Humanoid.JumpHeight = JumpValue
             end
 
         end
     end
 )
 
+--========================================================
+-- BUTTON
+--========================================================
 
---//====================================================
---// BUTTON CREATOR
---//====================================================
-
-local function CreateButton(Y, Text)
+local function CreateButton(Y,Text)
 
     local Button = Instance.new("TextButton")
-    Button.Size = UDim2.new(1,-20,0,38)
-    Button.Position = UDim2.new(0,10,0,Y)
-    Button.BackgroundColor3 = Color3.fromRGB(35,35,35)
+    Button.Size = UDim2.new(1,-30,0,39)
+    Button.Position = UDim2.fromOffset(15,Y)
+    Button.BackgroundColor3 = Color3.fromRGB(30,30,34)
     Button.BorderSizePixel = 0
     Button.Text = Text
-    Button.TextColor3 = Color3.fromRGB(255,255,255)
-    Button.TextSize = 12
+    Button.TextColor3 = Color3.fromRGB(225,225,225)
+    Button.TextSize = 11
     Button.Font = Enum.Font.GothamBold
+    Button.AutoButtonColor = false
     Button.Parent = Main
 
     local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0,8)
+    Corner.CornerRadius = UDim.new(0,9)
     Corner.Parent = Button
+
+    local Scale = Instance.new("UIScale")
+    Scale.Parent = Button
+
+    Button.MouseEnter:Connect(function()
+
+        TweenService:Create(
+            Scale,
+            TweenInfo.new(0.12),
+            {Scale = 1.025}
+        ):Play()
+    end)
+
+    Button.MouseLeave:Connect(function()
+
+        TweenService:Create(
+            Scale,
+            TweenInfo.new(0.12),
+            {Scale = 1}
+        ):Play()
+    end)
 
     return Button
 end
 
+--========================================================
+-- AUTO RETURN
+--========================================================
 
---// AUTO RETURN
 local AutoButton = CreateButton(
-    160,
-    "AUTO RETURN: OFF"
+    190,
+    "AUTO RETURN  •  OFF"
 )
 
 AutoButton.MouseButton1Click:Connect(function()
@@ -347,104 +491,134 @@ AutoButton.MouseButton1Click:Connect(function()
     AutoReturn = not AutoReturn
 
     if AutoReturn then
-        AutoButton.Text = "AUTO RETURN: ON"
-        AutoButton.BackgroundColor3 = Color3.fromRGB(65,35,90)
+
+        AutoButton.Text = "AUTO RETURN  •  ON"
+
+        TweenService:Create(
+            AutoButton,
+            TweenInfo.new(0.18),
+            {
+                BackgroundColor3 =
+                    Color3.fromRGB(65,38,95)
+            }
+        ):Play()
+
     else
-        AutoButton.Text = "AUTO RETURN: OFF"
-        AutoButton.BackgroundColor3 = Color3.fromRGB(35,35,35)
+
+        AutoButton.Text = "AUTO RETURN  •  OFF"
+
+        TweenService:Create(
+            AutoButton,
+            TweenInfo.new(0.18),
+            {
+                BackgroundColor3 =
+                    Color3.fromRGB(30,30,34)
+            }
+        ):Play()
     end
 end)
 
+--========================================================
+-- ANTI DROP
+--========================================================
 
---// ANTI DROP
-local AntiDropButton = CreateButton(
-    205,
-    "ANTI DROP: OFF"
+local AntiButton = CreateButton(
+    235,
+    "ANTI DROP  •  OFF"
 )
 
-AntiDropButton.MouseButton1Click:Connect(function()
+AntiButton.MouseButton1Click:Connect(function()
 
     AntiDrop = not AntiDrop
 
     if AntiDrop then
 
-        AntiDropButton.Text = "ANTI DROP: ON"
-        AntiDropButton.BackgroundColor3 = Color3.fromRGB(65,35,90)
+        AntiButton.Text = "ANTI DROP  •  ON"
 
-        print("[BLOCK] Anti Drop ativado.")
+        TweenService:Create(
+            AntiButton,
+            TweenInfo.new(0.18),
+            {
+                BackgroundColor3 =
+                    Color3.fromRGB(65,38,95)
+            }
+        ):Play()
 
     else
 
-        AntiDropButton.Text = "ANTI DROP: OFF"
-        AntiDropButton.BackgroundColor3 = Color3.fromRGB(35,35,35)
+        AntiButton.Text = "ANTI DROP  •  OFF"
 
-        print("[BLOCK] Anti Drop desativado.")
+        TweenService:Create(
+            AntiButton,
+            TweenInfo.new(0.18),
+            {
+                BackgroundColor3 =
+                    Color3.fromRGB(30,30,34)
+            }
+        ):Play()
     end
 end)
 
+--========================================================
+-- STATUS
+--========================================================
 
---// STATUS
 local Status = Instance.new("TextLabel")
-Status.Size = UDim2.new(1,-20,0,25)
-Status.Position = UDim2.new(0,10,0,250)
+Status.Size = UDim2.new(1,-30,0,18)
+Status.Position = UDim2.fromOffset(15,280)
 Status.BackgroundTransparency = 1
-Status.Text = "Status: Ready"
-Status.TextColor3 = Color3.fromRGB(150,150,150)
-Status.TextSize = 10
+Status.Text = "READY"
+Status.TextColor3 = Color3.fromRGB(110,110,115)
+Status.TextSize = 8
 Status.Font = Enum.Font.Gotham
 Status.TextXAlignment = Enum.TextXAlignment.Left
 Status.Parent = Main
 
-
---//====================================================
---// ANTI DROP
---//====================================================
-
-local Target
+--========================================================
+-- ANTI DROP HOOK
+--========================================================
 
 task.spawn(function()
 
     local Remotes = workspace:WaitForChild("Remotes")
+    local Target = Remotes:WaitForChild("DropEggRequest")
 
-    Target = Remotes:WaitForChild("DropEggRequest")
+    local OldNamecall
 
-    local oldNamecall
-
-    oldNamecall = hookmetamethod(
+    OldNamecall = hookmetamethod(
         game,
         "__namecall",
-        newcclosure(function(self,...)
+        newcclosure(function(Self,...)
 
             local Method = getnamecallmethod()
 
             if AntiDrop
-            and self == Target
+            and Self == Target
             and Method == "FireServer" then
 
                 return nil
             end
 
-            return oldNamecall(self,...)
+            return OldNamecall(Self,...)
         end)
     )
 
-    print("[BLOCK] DropEggRequest monitorado.")
+    print("[RYDERHUB] Anti Drop hook carregado.")
 end)
 
-
---//====================================================
---// AUTO RETURN
---//====================================================
+--========================================================
+-- AUTO RETURN / PROMPT
+--========================================================
 
 ProximityPromptService.PromptTriggered:Connect(
-    function(Prompt, PlayerWhoTriggered)
+    function(Prompt,TriggeredPlayer)
 
         if not AutoReturn then
             return
         end
 
-        if PlayerWhoTriggered
-        and PlayerWhoTriggered ~= Player then
+        if TriggeredPlayer
+        and TriggeredPlayer ~= Player then
             return
         end
 
@@ -467,13 +641,13 @@ ProximityPromptService.PromptTriggered:Connect(
 
         Returning = true
 
-        Status.Text = "Status: Prompt → retornando"
+        Status.Text = "PROMPT → RETURNING"
 
         local Distance =
-            (RootNow.Position - ReturnPosition).Magnitude
+            (RootNow.Position-ReturnPosition).Magnitude
 
         local Duration =
-            math.max(Distance / ReturnSpeed, 0.05)
+            math.max(Distance/ReturnSpeed,0.05)
 
         local Tween = TweenService:Create(
             RootNow,
@@ -493,28 +667,165 @@ ProximityPromptService.PromptTriggered:Connect(
 
         Returning = false
 
-        Status.Text = "Status: Na posição"
+        Status.Text = "READY"
     end
 )
 
-
---//====================================================
---// ATUALIZAÇÃO CONSTANTE
---//====================================================
+--========================================================
+-- FORCE SPEED / JUMP
+--========================================================
+-- Se outro sistema modificar os valores,
+-- Ryderhub restaura os valores escolhidos no slider.
 
 task.spawn(function()
 
-    while task.wait(0.1) do
+    while task.wait(0.05) do
 
-        if Humanoid then
+        if Humanoid and Humanoid.Parent then
 
-            Humanoid.WalkSpeed = Speed
+            if Humanoid.WalkSpeed ~= SpeedValue then
+                Humanoid.WalkSpeed = SpeedValue
+            end
 
             if Humanoid.UseJumpPower then
-                Humanoid.JumpPower = Jump
+
+                if Humanoid.JumpPower ~= JumpValue then
+                    Humanoid.JumpPower = JumpValue
+                end
+
             else
-                Humanoid.JumpHeight = Jump
+
+                if Humanoid.JumpHeight ~= JumpValue then
+                    Humanoid.JumpHeight = JumpValue
+                end
             end
         end
     end
 end)
+
+--========================================================
+-- FLOAT BUTTON ANIMATIONS
+--========================================================
+
+FloatButton.MouseEnter:Connect(function()
+
+    TweenService:Create(
+        FloatScale,
+        TweenInfo.new(
+            0.18,
+            Enum.EasingStyle.Back,
+            Enum.EasingDirection.Out
+        ),
+        {Scale = 1.12}
+    ):Play()
+
+    TweenService:Create(
+        FloatStroke,
+        TweenInfo.new(0.18),
+        {
+            Transparency = 0
+        }
+    ):Play()
+end)
+
+FloatButton.MouseLeave:Connect(function()
+
+    TweenService:Create(
+        FloatScale,
+        TweenInfo.new(0.18),
+        {Scale = 1}
+    ):Play()
+
+    TweenService:Create(
+        FloatStroke,
+        TweenInfo.new(0.18),
+        {
+            Transparency = 0.25
+        }
+    ):Play()
+end)
+
+--========================================================
+-- OPEN / CLOSE ANIMATION
+--========================================================
+
+local function OpenInterface()
+
+    if InterfaceOpen then
+        return
+    end
+
+    InterfaceOpen = true
+
+    Main.Visible = true
+    MainScale.Scale = 0.75
+
+    TweenService:Create(
+        MainScale,
+        TweenInfo.new(
+            0.28,
+            Enum.EasingStyle.Back,
+            Enum.EasingDirection.Out
+        ),
+        {
+            Scale = 1
+        }
+    ):Play()
+end
+
+local function CloseInterface()
+
+    if not InterfaceOpen then
+        return
+    end
+
+    InterfaceOpen = false
+
+    local Animation = TweenService:Create(
+        MainScale,
+        TweenInfo.new(
+            0.2,
+            Enum.EasingStyle.Back,
+            Enum.EasingDirection.In
+        ),
+        {
+            Scale = 0.75
+        }
+    )
+
+    Animation:Play()
+
+    Animation.Completed:Connect(function()
+
+        if not InterfaceOpen then
+            Main.Visible = false
+        end
+    end)
+end
+
+FloatButton.MouseButton1Click:Connect(function()
+
+    if InterfaceOpen then
+        CloseInterface()
+    else
+        OpenInterface()
+    end
+end)
+
+--========================================================
+-- START ANIMATION
+--========================================================
+
+MainScale.Scale = 0
+
+TweenService:Create(
+    MainScale,
+    TweenInfo.new(
+        0.35,
+        Enum.EasingStyle.Back,
+        Enum.EasingDirection.Out
+    ),
+    {
+        Scale = 1
+    }
+):Play()
