@@ -1,0 +1,298 @@
+--// Ryder Script Loader
+--// by gomesemcall
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+pcall(function()
+    local old = playerGui:FindFirstChild("RyderScriptLoader")
+    if old then
+        old:Destroy()
+    end
+end)
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "RyderScriptLoader"
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.Parent = playerGui
+
+--// FUNÇÃO PARA CRIAR CANTOS
+local function corner(parent, radius)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, radius or 8)
+    c.Parent = parent
+end
+
+--// FUNÇÃO PARA CRIAR BORDA
+local function stroke(parent)
+    local s = Instance.new("UIStroke")
+    s.Color = Color3.fromRGB(55, 55, 55)
+    s.Thickness = 1
+    s.Transparency = 0.15
+    s.Parent = parent
+end
+
+--// BOTÃO FLUTUANTE
+local ball = Instance.new("TextButton")
+ball.Name = "OpenButton"
+ball.Size = UDim2.new(0, 52, 0, 52)
+ball.Position = UDim2.new(0, 20, 0.5, -26)
+ball.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+ball.Text = "R"
+ball.TextColor3 = Color3.fromRGB(255, 255, 255)
+ball.TextSize = 22
+ball.Font = Enum.Font.GothamBold
+ball.AutoButtonColor = true
+ball.Parent = gui
+corner(ball, 26)
+stroke(ball)
+
+--// JANELA
+local main = Instance.new("Frame")
+main.Name = "Main"
+main.Size = UDim2.new(0, 310, 0, 275)
+main.Position = UDim2.new(0.5, -155, 0.5, -137)
+main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+main.BorderSizePixel = 0
+main.Parent = gui
+corner(main, 12)
+stroke(main)
+
+--// TÍTULO
+local title = Instance.new("TextLabel")
+title.BackgroundTransparency = 1
+title.Position = UDim2.new(0, 15, 0, 10)
+title.Size = UDim2.new(1, -55, 0, 30)
+title.Text = "Ryder Script Loader"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 17
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = main
+
+--// FECHAR
+local close = Instance.new("TextButton")
+close.Size = UDim2.new(0, 30, 0, 30)
+close.Position = UDim2.new(1, -40, 0, 8)
+close.BackgroundTransparency = 1
+close.Text = "×"
+close.TextColor3 = Color3.fromRGB(180, 180, 180)
+close.TextSize = 24
+close.Font = Enum.Font.GothamBold
+close.Parent = main
+
+--// FUNÇÃO INPUT
+local function createInput(name, placeholder, y)
+    local box = Instance.new("TextBox")
+    box.Name = name
+    box.Size = UDim2.new(1, -30, 0, 38)
+    box.Position = UDim2.new(0, 15, 0, y)
+    box.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    box.BorderSizePixel = 0
+    box.PlaceholderText = placeholder
+    box.PlaceholderColor3 = Color3.fromRGB(110, 110, 110)
+    box.Text = ""
+    box.TextColor3 = Color3.fromRGB(235, 235, 235)
+    box.TextSize = 13
+    box.Font = Enum.Font.Gotham
+    box.ClearTextOnFocus = false
+    box.Parent = main
+    corner(box, 8)
+    stroke(box)
+    return box
+end
+
+local repoBox = createInput(
+    "Repository",
+    "Repositório (ex: zyrohub)",
+    50
+)
+
+local fileBox = createInput(
+    "File",
+    "Arquivo (ex: Ryderhubv1.lua)",
+    95
+)
+
+--// BOTÃO GERAR
+local generate = Instance.new("TextButton")
+generate.Size = UDim2.new(1, -30, 0, 38)
+generate.Position = UDim2.new(0, 15, 0, 140)
+generate.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+generate.BorderSizePixel = 0
+generate.Text = "GERAR LOADSTRING"
+generate.TextColor3 = Color3.fromRGB(255, 255, 255)
+generate.TextSize = 13
+generate.Font = Enum.Font.GothamBold
+generate.Parent = main
+corner(generate, 8)
+stroke(generate)
+
+--// RESULTADO
+local result = Instance.new("TextBox")
+result.Size = UDim2.new(1, -30, 0, 48)
+result.Position = UDim2.new(0, 15, 0, 185)
+result.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+result.BorderSizePixel = 0
+result.Text = ""
+result.PlaceholderText = "O loadstring aparecerá aqui..."
+result.PlaceholderColor3 = Color3.fromRGB(90, 90, 90)
+result.TextColor3 = Color3.fromRGB(210, 210, 210)
+result.TextSize = 10
+result.Font = Enum.Font.Code
+result.TextWrapped = true
+result.MultiLine = true
+result.ClearTextOnFocus = false
+result.TextXAlignment = Enum.TextXAlignment.Left
+result.TextYAlignment = Enum.TextYAlignment.Center
+result.Parent = main
+corner(result, 8)
+stroke(result)
+
+--// COPIAR
+local copy = Instance.new("TextButton")
+copy.Size = UDim2.new(1, -30, 0, 30)
+copy.Position = UDim2.new(0, 15, 1, -38)
+copy.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
+copy.BorderSizePixel = 0
+copy.Text = "COPIAR"
+copy.TextColor3 = Color3.fromRGB(255, 255, 255)
+copy.TextSize = 12
+copy.Font = Enum.Font.GothamBold
+copy.Parent = main
+corner(copy, 7)
+stroke(copy)
+
+--// GERAR LOADSTRING
+generate.MouseButton1Click:Connect(function()
+    local repo = repoBox.Text:gsub("^%s+", ""):gsub("%s+$", "")
+    local file = fileBox.Text:gsub("^%s+", ""):gsub("%s+$", "")
+
+    if repo == "" or file == "" then
+        result.Text = "Preencha o repositório e o arquivo."
+        return
+    end
+
+    -- Se o usuário não colocou .lua, adiciona automaticamente
+    if not file:lower():match("%.lua$") then
+        file = file .. ".lua"
+    end
+
+    local raw = "https://raw.githubusercontent.com/gomesdev007/"
+        .. repo
+        .. "/refs/heads/main/"
+        .. file
+
+    result.Text = 'loadstring(game:HttpGet("' .. raw .. '"))()'
+end)
+
+--// COPIAR
+copy.MouseButton1Click:Connect(function()
+    if result.Text ~= "" then
+        pcall(function()
+            setclipboard(result.Text)
+        end)
+
+        local old = copy.Text
+        copy.Text = "COPIADO!"
+        task.delay(1, function()
+            if copy then
+                copy.Text = old
+            end
+        end)
+    end
+end)
+
+--// FECHAR
+close.MouseButton1Click:Connect(function()
+    main.Visible = false
+    ball.Visible = true
+end)
+
+--// ABRIR
+ball.MouseButton1Click:Connect(function()
+    main.Visible = not main.Visible
+end)
+
+--// ARRASTAR JANELA
+local dragging = false
+local dragStart
+local startPos
+
+local function updateDrag(input)
+    local delta = input.Position - dragStart
+
+    main.Position = UDim2.new(
+        startPos.X.Scale,
+        startPos.X.Offset + delta.X,
+        startPos.Y.Scale,
+        startPos.Y.Offset + delta.Y
+    )
+end
+
+main.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+
+        dragging = true
+        dragStart = input.Position
+        startPos = main.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if dragging and (
+        input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch
+    ) then
+        updateDrag(input)
+    end
+end)
+
+--// ARRASTAR BOLINHA
+local ballDragging = false
+local ballStart
+local ballPos
+
+ball.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+
+        ballDragging = true
+        ballStart = input.Position
+        ballPos = ball.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                ballDragging = false
+            end
+        end)
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if ballDragging and (
+        input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch
+    ) then
+
+        local delta = input.Position - ballStart
+
+        ball.Position = UDim2.new(
+            ballPos.X.Scale,
+            ballPos.X.Offset + delta.X,
+            ballPos.Y.Scale,
+            ballPos.Y.Offset + delta.Y
+        )
+    end
+end)
