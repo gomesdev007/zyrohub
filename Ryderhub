@@ -1,6 +1,6 @@
 --//========================================================
 --// RYDERHUB
---// Owner: gomescallpod
+--// Owner:gomescallpod
 --//========================================================
 
 local Players = game:GetService("Players")
