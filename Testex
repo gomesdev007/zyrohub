@@ -1,0 +1,2484 @@
+local Players=game:GetService("Players")
+local ReplicatedStorage=game:GetService("ReplicatedStorage")
+local UIS=game:GetService("UserInputService")
+local TweenService=game:GetService("TweenService")
+
+local LP=Players.LocalPlayer
+local PG=LP:WaitForChild("PlayerGui")
+
+pcall(function()
+	local old=PG:FindFirstChild("GomesExplorer")
+	if old then old:Destroy() end
+end)
+
+local selectedSource="Workspace"
+local selectedMode="Exact"
+local selectedObject=nil
+local scanning=false
+local minimized=false
+local expanded={}
+local currentResults={}
+local buttons={}
+
+local function New(c,p,parent)
+	local o=Instance.new(c)
+	for k,v in pairs(p or {}) do
+		pcall(function() o[k]=v end)
+	end
+	o.Parent=parent
+	return o
+end
+
+local Gui=New("ScreenGui",{
+	Name="GomesExplorer",
+	ResetOnSpawn=false,
+	IgnoreGuiInset=true,
+	ZIndexBehavior=Enum.ZIndexBehavior.Sibling
+},PG)
+
+local Main=New("Frame",{
+	Name="Main",
+	AnchorPoint=Vector2.new(1,0),
+	Position=UDim2.new(1,0,0,0),
+	Size=UDim2.new(0,360,1,0),
+	BackgroundColor3=Color3.fromRGB(13,13,17),
+	BackgroundTransparency=.08,
+	BorderSizePixel=0
+},Gui)
+
+New("UICorner",{CornerRadius=UDim.new(0,8)},Main)
+New("UIStroke",{
+	Color=Color3.fromRGB(65,65,75),
+	Thickness=1,
+	Transparency=.35
+},Main)
+
+local Header=New("Frame",{
+	Size=UDim2.new(1,0,0,52),
+	BackgroundColor3=Color3.fromRGB(20,20,25),
+	BackgroundTransparency=.1,
+	BorderSizePixel=0
+},Main)
+
+New("TextLabel",{
+	Position=UDim2.new(0,13,0,5),
+	Size=UDim2.new(1,-65,0,22),
+	BackgroundTransparency=1,
+	Font=Enum.Font.GothamBold,
+	Text="GOMES EXPLORER",
+	TextColor3=Color3.fromRGB(245,245,248),
+	TextSize=14,
+	TextXAlignment=Enum.TextXAlignment.Left
+},Header)
+
+New("TextLabel",{
+	Position=UDim2.new(0,13,0,27),
+	Size=UDim2.new(1,-65,0,15),
+	BackgroundTransparency=1,
+	Font=Enum.Font.Gotham,
+	Text="Explorer / Scanner",
+	TextColor3=Color3.fromRGB(125,125,135),
+	TextSize=8,
+	TextXAlignment=Enum.TextXAlignment.Left
+},Header)
+
+local Min=New("TextButton",{
+	AnchorPoint=Vector2.new(1,.5),
+	Position=UDim2.new(1,-9,.5,0),
+	Size=UDim2.new(0,32,0,32),
+	BackgroundColor3=Color3.fromRGB(34,34,41),
+	BorderSizePixel=0,
+	Font=Enum.Font.GothamBold,
+	Text="›",
+	TextColor3=Color3.fromRGB(225,225,230),
+	TextSize=22,
+	AutoButtonColor=false
+},Header)
+
+New("UICorner",{CornerRadius=UDim.new(0,7)},Min)
+
+local Content=New("Frame",{
+	Position=UDim2.new(0,0,0,52),
+	Size=UDim2.new(1,0,1,-52),
+	BackgroundTransparency=1
+},Main)
+
+local Search=New("TextBox",{
+	Position=UDim2.new(0,10,0,9),
+	Size=UDim2.new(1,-20,0,35),
+	BackgroundColor3=Color3.fromRGB(25,25,31),
+	BorderSizePixel=0,
+	ClearTextOnFocus=false,
+	Font=Enum.Font.Gotham,
+	PlaceholderText="Pesquisar objeto...",
+	PlaceholderColor3=Color3.fromRGB(95,95,105),
+	Text="",
+	TextColor3=Color3.fromRGB(235,235,240),
+	TextSize=11,
+	TextXAlignment=Enum.TextXAlignment.Left
+},Content)
+
+New("UICorner",{CornerRadius=UDim.new(0,7)},Search)
+New("UIPadding",{
+	PaddingLeft=UDim.new(0,10),
+	PaddingRight=UDim.new(0,10)
+},Search)
+
+New("TextLabel",{
+	Position=UDim2.new(0,10,0,51),
+	Size=UDim2.new(1,-20,0,16),
+	BackgroundTransparency=1,
+	Font=Enum.Font.GothamBold,
+	Text="FONTE",
+	TextColor3=Color3.fromRGB(130,130,140),
+	TextSize=9,
+	TextXAlignment=Enum.TextXAlignment.Left
+},Content)
+
+local Source=New("Frame",{
+	Position=UDim2.new(0,10,0,69),
+	Size=UDim2.new(1,-20,0,35),
+	BackgroundTransparency=1
+},Content)
+
+New("UIListLayout",{
+	FillDirection=Enum.FillDirection.Horizontal,
+	Padding=UDim.new(0,5)
+},Source)
+
+local function Button(text,parent,w)
+	local b=New("TextButton",{
+		Size=UDim2.new(0,w or 107,1,0),
+		BackgroundColor3=Color3.fromRGB(27,27,33),
+		BorderSizePixel=0,
+		Font=Enum.Font.GothamBold,
+		Text=text,
+		TextColor3=Color3.fromRGB(175,175,185),
+		TextSize=9,
+		AutoButtonColor=false
+	},parent)
+	New("UICorner",{CornerRadius=UDim.new(0,6)},b)
+	return b
+end
+
+local WB=Button("Workspace",Source)
+local RB=Button("Replicated",Source)
+local PB=Button("Players",Source)
+
+New("TextLabel",{
+	Position=UDim2.new(0,10,0,109),
+	Size=UDim2.new(1,-20,0,16),
+	BackgroundTransparency=1,
+	Font=Enum.Font.GothamBold,
+	Text="MODO DE BUSCA",
+	TextColor3=Color3.fromRGB(130,130,140),
+	TextSize=9,
+	TextXAlignment=Enum.TextXAlignment.Left
+},Content)
+
+local Modes=New("Frame",{
+	Position=UDim2.new(0,10,0,127),
+	Size=UDim2.new(1,-20,0,35),
+	BackgroundTransparency=1
+},Content)
+
+New("UIListLayout",{
+	FillDirection=Enum.FillDirection.Horizontal,
+	Padding=UDim.new(0,5)
+},Modes)
+
+local EB=Button("EXACT",Modes,108)
+local AB=Button("APROXIMADO",Modes,108)
+local TB=Button("TUDO",Modes,108)
+
+local Actions=New("Frame",{
+	Position=UDim2.new(0,10,0,168),
+	Size=UDim2.new(1,-20,0,36),
+	BackgroundTransparency=1
+},Content)
+
+local Scan=Button("SCAN",Actions)
+Scan.Size=UDim2.new(.5,-3,1,0)
+
+local Copy=Button("COPY",Actions)
+Copy.Position=UDim2.new(.5,3,0,0)
+Copy.Size=UDim2.new(.5,-3,1,0)
+
+local Status=New("TextLabel",{
+	Position=UDim2.new(0,10,0,209),
+	Size=UDim2.new(1,-20,0,21),
+	BackgroundTransparency=1,
+	Font=Enum.Font.Gotham,
+	Text="Pronto",
+	TextColor3=Color3.fromRGB(125,125,135),
+	TextSize=9,
+	TextXAlignment=Enum.TextXAlignment.Left,
+	TextTruncate=Enum.TextTruncate.AtEnd
+},Content)
+
+local Results=New("ScrollingFrame",{
+	Position=UDim2.new(0,8,0,235),
+	Size=UDim2.new(1,-16,1,-243),
+	BackgroundColor3=Color3.fromRGB(9,9,12),
+	BackgroundTransparency=.18,
+	BorderSizePixel=0,
+	ScrollBarThickness=5,
+	CanvasSize=UDim2.new(),
+	AutomaticCanvasSize=Enum.AutomaticSize.Y
+},Content)
+
+New("UICorner",{CornerRadius=UDim.new(0,7)},Results)
+
+New("UIListLayout",{
+	Padding=UDim.new(0,1),
+	SortOrder=Enum.SortOrder.LayoutOrder
+},Results)
+
+New("UIPadding",{
+	PaddingTop=UDim.new(0,5),
+	PaddingBottom=UDim.new(0,8),
+	PaddingLeft=UDim.new(0,3),
+	PaddingRight=UDim.new(0,3)
+},Results)
+
+local meaningful={
+	Folder=true,
+	Model=true,
+	ProximityPrompt=true,
+	RemoteEvent=true,
+	RemoteFunction=true,
+	BindableEvent=true,
+	BindableFunction=true,
+	ModuleScript=true,
+	LocalScript=true,
+	Script=true,
+	Attachment=true,
+	StringValue=true,
+	BoolValue=true,
+	IntValue=true,
+	NumberValue=true,
+	ObjectValue=true,
+	Vector3Value=true,
+	CFrameValue=true,
+	Color3Value=true,
+	Camera=true,
+	Sound=true,
+	Decal=true,
+	ParticleEmitter=true,
+	Beam=true
+}
+
+local function isMeaningful(o)
+	if o.ClassName=="Terrain" or o.ClassName=="SurfaceAppearance" then
+		return false
+	end
+	return meaningful[o.ClassName] or o:IsA("BasePart")
+end
+
+local function hasMeaningful(o)
+	for _,c in ipairs(o:GetChildren()) do
+		if isMeaningful(c) or hasMeaningful(c) then
+			return true
+		end
+	end
+	return false
+end
+
+local function root()
+	if selectedSource=="Workspace" then
+		return workspace
+	elseif selectedSource=="ReplicatedStorage" then
+		return ReplicatedStorage
+	else
+		return Players
+	end
+end
+
+local function path(o)
+	local t={}
+	local x=o
+	while x and x~=game do
+		table.insert(t,1,x.Name)
+		x=x.Parent
+	end
+	return table.concat(t,".")
+end
+
+local function icon(o)
+	if o:IsA("Folder") then return "📁" end
+	if o:IsA("Model") then return "◈" end
+	if o:IsA("BasePart") then return "■" end
+	if o:IsA("ProximityPrompt") then return "⌁" end
+	if o:IsA("RemoteEvent") or o:IsA("BindableEvent") then return "⚡" end
+	if o:IsA("RemoteFunction") or o:IsA("BindableFunction") then return "ƒ" end
+	if o:IsA("ModuleScript") then return "M" end
+	if o:IsA("LocalScript") then return "L" end
+	if o:IsA("Script") then return "S" end
+	if o:IsA("Attachment") then return "●" end
+	if o:IsA("ValueBase") then return "=" end
+	if o:IsA("Camera") then return "◎" end
+	if o:IsA("Sound") then return "♫" end
+	if o:IsA("ParticleEmitter") then return "*" end
+	return "•"
+end
+
+local function clear()
+	for _,v in ipairs(Results:GetChildren()) do
+		if v:IsA("GuiObject") then
+			v:Destroy()
+		end
+	end
+	table.clear(buttons)
+	table.clear(currentResults)
+	selectedObject=nil
+end
+
+local function select(o,b)
+	selectedObject=o
+	for obj,btn in pairs(buttons) do
+		if btn and btn.Parent then
+			btn.BackgroundTransparency=obj==o and 0 or 1
+			if obj==o then
+				btn.BackgroundColor3=Color3.fromRGB(52,52,63)
+			end
+		end
+	end
+	if b then
+		b.BackgroundTransparency=0
+		b.BackgroundColor3=Color3.fromRGB(52,52,63)
+	end
+	Status.Text=path(o)
+end
+
+local openObjectInfo
+
+local function treeButton(o,depth)
+	local b=New("TextButton",{
+		Size=UDim2.new(1,-4,0,28),
+		BackgroundTransparency=1,
+		BorderSizePixel=0,
+		AutoButtonColor=false,
+		Text=""
+	},Results)
+
+	local indent=math.min(depth*15,180)
+	local children=#o:GetChildren()>0
+	local exp=expanded[o]==true
+
+	New("TextLabel",{
+		Position=UDim2.new(0,indent,0,0),
+		Size=UDim2.new(0,16,1,0),
+		BackgroundTransparency=1,
+		Font=Enum.Font.GothamBold,
+		Text=children and (exp and "▼" or "▶") or "",
+		TextColor3=Color3.fromRGB(145,145,155),
+		TextSize=9
+	},b)
+
+	New("TextLabel",{
+		Position=UDim2.new(0,indent+17,0,0),
+		Size=UDim2.new(0,22,1,0),
+		BackgroundTransparency=1,
+		Font=Enum.Font.Gotham,
+		Text=icon(o),
+		TextSize=11,
+		TextColor3=Color3.fromRGB(190,190,200)
+	},b)
+
+	New("TextLabel",{
+		Position=UDim2.new(0,indent+42,0,0),
+		Size=UDim2.new(1,-indent-48,1,0),
+		BackgroundTransparency=1,
+		Font=Enum.Font.Gotham,
+		Text=o.Name,
+		TextColor3=Color3.fromRGB(225,225,230),
+		TextSize=10,
+		TextXAlignment=Enum.TextXAlignment.Left,
+		TextTruncate=Enum.TextTruncate.AtEnd
+	},b)
+
+	buttons[o]=b
+
+	local last=0
+
+	b.MouseEnter:Connect(function()
+		if selectedObject~=o then
+			b.BackgroundColor3=Color3.fromRGB(29,29,36)
+			b.BackgroundTransparency=.15
+		end
+	end)
+
+	b.MouseLeave:Connect(function()
+		if selectedObject~=o then
+			b.BackgroundTransparency=1
+		end
+	end)
+
+	b.MouseButton1Click:Connect(function()
+		local now=tick()
+		local dbl=now-last<=.32
+		last=now
+
+		select(o,b)
+
+		if dbl then
+			if openObjectInfo then
+				openObjectInfo(o)
+			end
+			return
+		end
+
+		if children and selectedMode=="All" then
+			expanded[o]=not expanded[o]
+			task.defer(function()
+				if not scanning then
+					renderExplorer()
+				end
+			end)
+		end
+	end)
+
+	return b
+end
+
+renderExplorer=function()
+	if scanning then return end
+
+	for _,v in ipairs(Results:GetChildren()) do
+		if v:IsA("GuiObject") then v:Destroy() end
+	end
+
+	table.clear(buttons)
+
+	local r=root()
+	if not r then return end
+
+	expanded[r]=true
+	treeButton(r,0)
+
+	local function render(parent,depth)
+		if not expanded[parent] then return end
+
+		local list=parent:GetChildren()
+
+		table.sort(list,function(a,b)
+			local am=isMeaningful(a)
+			local bm=isMeaningful(b)
+			if am~=bm then return am end
+
+			local ac=a:IsA("Folder") or a:IsA("Model")
+			local bc=b:IsA("Folder") or b:IsA("Model")
+			if ac~=bc then return ac end
+
+			return a.Name:lower()<b.Name:lower()
+		end)
+
+		for _,c in ipairs(list) do
+			if isMeaningful(c) or hasMeaningful(c) then
+				treeButton(c,depth)
+				if expanded[c] then
+					render(c,depth+1)
+				end
+			end
+		end
+	end
+
+	render(r,1)
+	Status.Text="Explorer • "..r.Name
+end
+
+local function searchObjects(r,q,mode)
+	local out={}
+	q=q:lower()
+
+	local function match(o)
+		local n=o.Name:lower()
+		if mode=="Exact" then
+			return n==q
+		end
+		return n:find(q,1,true)~=nil
+	end
+
+	if match(r) then table.insert(out,r) end
+
+	for _,o in ipairs(r:GetDescendants()) do
+		if match(o) then
+			table.insert(out,o)
+		end
+	end
+
+	table.sort(out,function(a,b)
+		return path(a):lower()<path(b):lower()
+	end)
+
+	return out
+end
+
+local function renderSearch(list)
+	clear()
+
+	for _,o in ipairs(list) do
+		table.insert(currentResults,o)
+		local b=treeButton(o,0)
+
+		local p=New("TextLabel",{
+			Position=UDim2.new(0,44,0,16),
+			Size=UDim2.new(1,-50,0,10),
+			BackgroundTransparency=1,
+			Font=Enum.Font.Gotham,
+			Text=path(o),
+			TextColor3=Color3.fromRGB(100,100,110),
+			TextSize=7,
+			TextXAlignment=Enum.TextXAlignment.Left,
+			TextTruncate=Enum.TextTruncate.AtEnd
+		},b)
+	end
+
+	Status.Text=#list.." resultado(s)"
+end
+
+function performScan()
+	if scanning then return end
+	scanning=true
+	Scan.Text="SCANNING..."
+	clear()
+
+	task.wait()
+
+	local r=root()
+
+	if selectedMode=="All" then
+		Status.Text="Carregando Explorer..."
+		expanded[r]=true
+		renderExplorer()
+	else
+		local q=Search.Text
+		if q=="" then
+			Status.Text="Digite algo para pesquisar"
+		else
+			Status.Text="Pesquisando..."
+			task.wait()
+			renderSearch(searchObjects(r,q,selectedMode))
+		end
+	end
+
+	scanning=false
+	Scan.Text="SCAN"
+end
+
+local function source(name)
+	selectedSource=name
+	clear()
+	Status.Text=name.." selecionado"
+	updateSourceButtons()
+end
+
+function updateSourceButtons()
+	for _,b in ipairs({WB,RB,PB}) do
+		b.BackgroundColor3=Color3.fromRGB(27,27,33)
+		b.TextColor3=Color3.fromRGB(175,175,185)
+	end
+
+	local b=selectedSource=="Workspace" and WB
+		or selectedSource=="ReplicatedStorage" and RB
+		or PB
+
+	b.BackgroundColor3=Color3.fromRGB(55,55,67)
+	b.TextColor3=Color3.fromRGB(255,255,255)
+end
+
+function updateModeButtons()
+	for _,b in ipairs({EB,AB,TB}) do
+		b.BackgroundColor3=Color3.fromRGB(27,27,33)
+		b.TextColor3=Color3.fromRGB(175,175,185)
+	end
+
+	local b=selectedMode=="Exact" and EB
+		or selectedMode=="Approx" and AB
+		or TB
+
+	b.BackgroundColor3=Color3.fromRGB(55,55,67)
+	b.TextColor3=Color3.fromRGB(255,255,255)
+end
+
+WB.MouseButton1Click:Connect(function()
+	source("Workspace")
+end)
+
+RB.MouseButton1Click:Connect(function()
+	source("ReplicatedStorage")
+end)
+
+PB.MouseButton1Click:Connect(function()
+	source("Players")
+end)
+
+EB.MouseButton1Click:Connect(function()
+	selectedMode="Exact"
+	updateModeButtons()
+	Status.Text="Modo Exact"
+end)
+
+AB.MouseButton1Click:Connect(function()
+	selectedMode="Approx"
+	updateModeButtons()
+	Status.Text="Modo Aproximado"
+end)
+
+TB.MouseButton1Click:Connect(function()
+	selectedMode="All"
+	updateModeButtons()
+	Status.Text="Modo Tudo"
+end)
+
+Scan.MouseButton1Click:Connect(performScan)
+
+Search.FocusLost:Connect(function(enter)
+	if enter then performScan() end
+end)
+
+local function report()
+	local t={
+		"GOMES EXPLORER",
+		"Fonte: "..selectedSource,
+		"Modo: "..selectedMode,
+		""
+	}
+
+	if #currentResults>0 then
+		for _,o in ipairs(currentResults) do
+			if o and o.Parent then
+				table.insert(t,o:GetFullName())
+			end
+		end
+	elseif selectedObject and selectedObject.Parent then
+		table.insert(t,selectedObject:GetFullName())
+	else
+		local r=root()
+		table.insert(t,r:GetFullName())
+		for _,o in ipairs(r:GetDescendants()) do
+			if isMeaningful(o) then
+				table.insert(t,o:GetFullName())
+			end
+		end
+	end
+
+	return table.concat(t,"\n")
+end
+
+Copy.MouseButton1Click:Connect(function()
+	local text=report()
+
+	if typeof(setclipboard)=="function" then
+		local ok=pcall(function()
+			setclipboard(text)
+		end)
+
+		if ok then
+			Copy.Text="COPIADO"
+			Status.Text="Relatório copiado"
+			task.delay(1,function()
+				if Copy.Parent then Copy.Text="COPY" end
+			end)
+		else
+			Status.Text="Falha ao copiar"
+		end
+	else
+		Status.Text="Clipboard indisponível"
+	end
+end)
+
+local fullSize=UDim2.new(0,360,1,0)
+local smallSize=UDim2.new(0,48,1,0)
+
+Min.MouseButton1Click:Connect(function()
+	minimized=not minimized
+
+	if minimized then
+		Content.Visible=false
+		Min.Text="‹"
+		TweenService:Create(
+			Main,
+			TweenInfo.new(.2,Enum.EasingStyle.Quad),
+			{Size=smallSize}
+		):Play()
+	else
+		Min.Text="›"
+		TweenService:Create(
+			Main,
+			TweenInfo.new(.2,Enum.EasingStyle.Quad),
+			{Size=fullSize}
+		):Play()
+
+		task.delay(.2,function()
+			if not minimized then
+				Content.Visible=true
+			end
+		end)
+	end
+end)
+
+UIS.InputBegan:Connect(function(input,gp)
+	if gp then return end
+	if input.KeyCode==Enum.KeyCode.Escape then
+		if typeof(closeObjectInfo)=="function" then
+			closeObjectInfo()
+		end
+	end
+end)
+
+updateSourceButtons()
+updateModeButtons()
+renderExplorer()
+local InfoGui=nil
+local InfoFrame=nil
+local InfoContent=nil
+local Viewer=nil
+local ViewerCamera=nil
+local ViewerWorld=nil
+local ViewerModel=nil
+local ViewerConnection=nil
+local ViewerDragConnection=nil
+local ViewerInputConnection=nil
+local ViewerTouchConnection=nil
+local viewerYaw=0
+local viewerPitch=0
+local viewerDistance=8
+local viewerDragging=false
+local viewerLastPosition=nil
+
+local function safeGet(object,property)
+	local ok,value=pcall(function()
+		return object[property]
+	end)
+
+	if ok then
+		return value
+	end
+
+	return nil
+end
+
+local function valueText(value)
+	if value==nil then
+		return "nil"
+	end
+
+	local kind=typeof(value)
+
+	if kind=="Vector3" then
+		return string.format(
+			"%.3f, %.3f, %.3f",
+			value.X,value.Y,value.Z
+		)
+	end
+
+	if kind=="Vector2" then
+		return string.format(
+			"%.3f, %.3f",
+			value.X,value.Y
+		)
+	end
+
+	if kind=="CFrame" then
+		local p=value.Position
+		local rx,ry,rz=value:ToOrientation()
+
+		return string.format(
+			"Pos %.2f, %.2f, %.2f | Rot %.1f, %.1f, %.1f",
+			p.X,p.Y,p.Z,
+			math.deg(rx),
+			math.deg(ry),
+			math.deg(rz)
+		)
+	end
+
+	if kind=="Color3" then
+		return string.format(
+			"RGB %d, %d, %d",
+			math.floor(value.R*255+0.5),
+			math.floor(value.G*255+0.5),
+			math.floor(value.B*255+0.5)
+		)
+	end
+
+	if kind=="BrickColor" then
+		return value.Name
+	end
+
+	if kind=="EnumItem" then
+		return tostring(value)
+	end
+
+	if kind=="Instance" then
+		return value:GetFullName()
+	end
+
+	if type(value)=="table" then
+		return "{table}"
+	end
+
+	return tostring(value)
+end
+
+local function addInfoLine(parent,label,value,order)
+	local row=Instance.new("Frame")
+	row.Size=UDim2.new(1,-8,0,34)
+	row.BackgroundColor3=Color3.fromRGB(22,22,28)
+	row.BackgroundTransparency=.15
+	row.BorderSizePixel=0
+	row.LayoutOrder=order or 0
+	row.Parent=parent
+
+	Instance.new("UICorner",row).CornerRadius=UDim.new(0,5)
+
+	local title=Instance.new("TextLabel")
+	title.Position=UDim2.new(0,8,0,3)
+	title.Size=UDim2.new(0,105,0,12)
+	title.BackgroundTransparency=1
+	title.Font=Enum.Font.GothamBold
+	title.Text=label
+	title.TextColor3=Color3.fromRGB(125,125,138)
+	title.TextSize=8
+	title.TextXAlignment=Enum.TextXAlignment.Left
+	title.Parent=row
+
+	local text=Instance.new("TextLabel")
+	text.Position=UDim2.new(0,112,0,3)
+	text.Size=UDim2.new(1,-120,0,27)
+	text.BackgroundTransparency=1
+	text.Font=Enum.Font.Gotham
+	text.Text=valueText(value)
+	text.TextColor3=Color3.fromRGB(225,225,232)
+	text.TextSize=8
+	text.TextWrapped=true
+	text.TextXAlignment=Enum.TextXAlignment.Left
+	text.TextYAlignment=Enum.TextYAlignment.Center
+	text.TextTruncate=Enum.TextTruncate.AtEnd
+	text.Parent=row
+end
+
+local function getAttributesText(object)
+	local attributes=object:GetAttributes()
+	local names={}
+
+	for name in pairs(attributes) do
+		table.insert(names,name)
+	end
+
+	table.sort(names)
+
+	if #names==0 then
+		return "Nenhum"
+	end
+
+	local lines={}
+
+	for _,name in ipairs(names) do
+		table.insert(
+			lines,
+			name.." = "..valueText(attributes[name])
+		)
+	end
+
+	return table.concat(lines," | ")
+end
+
+local function getObjectInfo(object)
+	local info={}
+
+	table.insert(info,{"Name",object.Name})
+	table.insert(info,{"ClassName",object.ClassName})
+	table.insert(info,{"Full Path",object:GetFullName()})
+
+	if object.Parent then
+		table.insert(info,{"Parent",object.Parent:GetFullName()})
+	else
+		table.insert(info,{"Parent","nil"})
+	end
+
+	table.insert(info,{"Children",#object:GetChildren()})
+	table.insert(info,{"Descendants",#object:GetDescendants()})
+
+	local archivable=safeGet(object,"Archivable")
+	if archivable~=nil then
+		table.insert(info,{"Archivable",archivable})
+	end
+
+	if object:IsA("BasePart") then
+		table.insert(info,{"Position",object.Position})
+		table.insert(info,{"Size",object.Size})
+		table.insert(info,{"Orientation",object.Orientation})
+		table.insert(info,{"Anchored",object.Anchored})
+		table.insert(info,{"CanCollide",object.CanCollide})
+		table.insert(info,{"CanTouch",object.CanTouch})
+		table.insert(info,{"CanQuery",object.CanQuery})
+		table.insert(info,{"Transparency",object.Transparency})
+		table.insert(info,{"Material",object.Material})
+		table.insert(info,{"Color",object.Color})
+	end
+
+	if object:IsA("Model") then
+		local primary=object.PrimaryPart
+
+		if primary then
+			table.insert(info,{"PrimaryPart",primary:GetFullName()})
+		else
+			table.insert(info,{"PrimaryPart","nil"})
+		end
+
+		local pivot=object:GetPivot()
+		table.insert(info,{"WorldPivot",pivot})
+	end
+
+	if object:IsA("ProximityPrompt") then
+		table.insert(info,{"ActionText",object.ActionText})
+		table.insert(info,{"ObjectText",object.ObjectText})
+		table.insert(info,{"HoldDuration",object.HoldDuration})
+		table.insert(info,{"MaxActivationDistance",object.MaxActivationDistance})
+		table.insert(info,{"Enabled",object.Enabled})
+		table.insert(info,{"KeyboardKeyCode",object.KeyboardKeyCode})
+		table.insert(info,{"GamepadKeyCode",object.GamepadKeyCode})
+		table.insert(info,{"RequiresLineOfSight",object.RequiresLineOfSight})
+	end
+
+	if object:IsA("Sound") then
+		table.insert(info,{"SoundId",object.SoundId})
+		table.insert(info,{"Volume",object.Volume})
+		table.insert(info,{"Playing",object.Playing})
+		table.insert(info,{"Looped",object.Looped})
+	end
+
+	if object:IsA("ParticleEmitter") then
+		table.insert(info,{"Rate",object.Rate})
+		table.insert(info,{"Lifetime",object.Lifetime})
+		table.insert(info,{"Enabled",object.Enabled})
+	end
+
+	if object:IsA("Attachment") then
+		table.insert(info,{"Position",object.Position})
+		table.insert(info,{"Orientation",object.Orientation})
+		table.insert(info,{"WorldPosition",object.WorldPosition})
+	end
+
+	table.insert(info,{"Attributes",getAttributesText(object)})
+
+	return info
+end
+
+local function destroyViewer()
+	if ViewerConnection then
+		ViewerConnection:Disconnect()
+		ViewerConnection=nil
+	end
+
+	if ViewerDragConnection then
+		ViewerDragConnection:Disconnect()
+		ViewerDragConnection=nil
+	end
+
+	if ViewerInputConnection then
+		ViewerInputConnection:Disconnect()
+		ViewerInputConnection=nil
+	end
+
+	if ViewerTouchConnection then
+		ViewerTouchConnection:Disconnect()
+		ViewerTouchConnection=nil
+	end
+
+	if ViewerWorld then
+		for _,child in ipairs(ViewerWorld:GetChildren()) do
+			child:Destroy()
+		end
+	end
+
+	ViewerModel=nil
+	viewerYaw=0
+	viewerPitch=0
+	viewerDistance=8
+	viewerDragging=false
+	viewerLastPosition=nil
+end
+
+local function createViewport(object,holder)
+	destroyViewer()
+
+	local canDisplay=false
+
+	if object:IsA("BasePart") or object:IsA("Model") then
+		canDisplay=true
+	elseif object:IsA("Accessory") then
+		canDisplay=true
+	end
+
+	if not canDisplay then
+		local unavailable=Instance.new("TextLabel")
+		unavailable.Size=UDim2.new(1,0,1,0)
+		unavailable.BackgroundTransparency=1
+		unavailable.Font=Enum.Font.Gotham
+		unavailable.Text="Visualização 3D indisponível\npara este objeto."
+		unavailable.TextColor3=Color3.fromRGB(130,130,140)
+		unavailable.TextSize=11
+		unavailable.TextWrapped=true
+		unavailable.Parent=holder
+		return
+	end
+
+	Viewer=Instance.new("ViewportFrame")
+	Viewer.Name="Viewer3D"
+	Viewer.Size=UDim2.new(1,0,1,0)
+	Viewer.BackgroundColor3=Color3.fromRGB(8,8,11)
+	Viewer.BorderSizePixel=0
+	Viewer.Ambient=Color3.fromRGB(180,180,180)
+	Viewer.LightColor=Color3.fromRGB(255,255,255)
+	Viewer.LightDirection=Vector3.new(-1,-1,-1)
+	Viewer.Parent=holder
+
+	ViewerWorld=Instance.new("WorldModel")
+	ViewerWorld.Parent=Viewer
+
+	ViewerCamera=Instance.new("Camera")
+	ViewerCamera.FieldOfView=45
+	ViewerCamera.Parent=Viewer
+	Viewer.CurrentCamera=ViewerCamera
+
+	local clone=nil
+
+	local ok=pcall(function()
+		clone=object:Clone()
+	end)
+
+	if not ok or not clone then
+		local fail=Instance.new("TextLabel")
+		fail.Size=UDim2.new(1,0,1,0)
+		fail.BackgroundTransparency=1
+		fail.Font=Enum.Font.Gotham
+		fail.Text="Não foi possível clonar\neste objeto para o Viewer."
+		fail.TextColor3=Color3.fromRGB(150,150,160)
+		fail.TextSize=10
+		fail.TextWrapped=true
+		fail.Parent=Viewer
+		return
+	end
+
+	ViewerModel=clone
+	clone.Parent=ViewerWorld
+
+	for _,desc in ipairs(clone:GetDescendants()) do
+		if desc:IsA("Script")
+			or desc:IsA("LocalScript")
+			or desc:IsA("ModuleScript")
+			or desc:IsA("ProximityPrompt")
+			or desc:IsA("ClickDetector") then
+			desc:Destroy()
+		elseif desc:IsA("BasePart") then
+			desc.Anchored=true
+			desc.CanCollide=false
+			desc.CanTouch=false
+			desc.CanQuery=false
+		end
+	end
+
+	local center=Vector3.zero
+	local size=Vector3.new(4,4,4)
+
+	if clone:IsA("Model") then
+		local okBox,cf,box=pcall(function()
+			return clone:GetBoundingBox()
+		end)
+
+		if okBox then
+			center=cf.Position
+			size=box
+		end
+	elseif clone:IsA("BasePart") then
+		center=clone.Position
+		size=clone.Size
+	end
+
+	if clone:IsA("Model") then
+		local pivot=clone:GetPivot()
+		clone:PivotTo(CFrame.new(-center)*pivot)
+	elseif clone:IsA("BasePart") then
+		clone.CFrame=clone.CFrame+(-center)
+	end
+
+	local maxSize=math.max(size.X,size.Y,size.Z)
+	viewerDistance=math.max(5,maxSize*2.4)
+
+	local function updateCamera()
+		if not ViewerCamera then return end
+
+		local rotation=
+			CFrame.Angles(0,math.rad(viewerYaw),0)*
+			CFrame.Angles(math.rad(viewerPitch),0,0)
+
+		local offset=rotation:VectorToWorldSpace(
+			Vector3.new(0,0,viewerDistance)
+		)
+
+		ViewerCamera.CFrame=CFrame.lookAt(
+			offset,
+			Vector3.zero
+		)
+	end
+
+	updateCamera()
+
+	ViewerInputConnection=Viewer.InputBegan:Connect(function(input)
+		if input.UserInputType==Enum.UserInputType.MouseButton1
+			or input.UserInputType==Enum.UserInputType.Touch then
+
+			viewerDragging=true
+			viewerLastPosition=input.Position
+		end
+	end)
+
+	ViewerTouchConnection=Viewer.InputEnded:Connect(function(input)
+		if input.UserInputType==Enum.UserInputType.MouseButton1
+			or input.UserInputType==Enum.UserInputType.Touch then
+
+			viewerDragging=false
+			viewerLastPosition=nil
+		end
+	end)
+
+	ViewerDragConnection=UIS.InputChanged:Connect(function(input)
+		if not viewerDragging then return end
+		if not viewerLastPosition then
+			viewerLastPosition=input.Position
+			return
+		end
+
+		if input.UserInputType==Enum.UserInputType.MouseMovement
+			or input.UserInputType==Enum.UserInputType.Touch then
+
+			local delta=input.Position-viewerLastPosition
+			viewerLastPosition=input.Position
+
+			viewerYaw=viewerYaw-delta.X*.5
+			viewerPitch=math.clamp(
+				viewerPitch-delta.Y*.35,
+				-80,
+				80
+			)
+
+			updateCamera()
+		end
+	end)
+
+	ViewerConnection=UIS.InputChanged:Connect(function(input)
+		if input.UserInputType==Enum.UserInputType.MouseWheel then
+			local z=input.Position.Z
+
+			viewerDistance=math.clamp(
+				viewerDistance-z*1.2,
+				math.max(2,maxSize*.45),
+				math.max(30,maxSize*8)
+			)
+
+			updateCamera()
+		end
+	end)
+end
+
+local function buildInfoWindow(object)
+	if InfoGui then
+		InfoGui:Destroy()
+		InfoGui=nil
+	end
+
+	destroyViewer()
+
+	InfoGui=Instance.new("ScreenGui")
+	InfoGui.Name="GomesObjectInfo"
+	InfoGui.ResetOnSpawn=false
+	InfoGui.IgnoreGuiInset=true
+	InfoGui.ZIndexBehavior=Enum.ZIndexBehavior.Sibling
+	InfoGui.DisplayOrder=20
+	InfoGui.Parent=PG
+
+	InfoFrame=Instance.new("Frame")
+	InfoFrame.AnchorPoint=Vector2.new(.5,.5)
+	InfoFrame.Position=UDim2.new(.5,.5,0,0)
+	InfoFrame.Size=UDim2.new(0,650,0,520)
+	InfoFrame.BackgroundColor3=Color3.fromRGB(12,12,16)
+	InfoFrame.BorderSizePixel=0
+	InfoFrame.Parent=InfoGui
+
+	Instance.new("UICorner",InfoFrame).CornerRadius=UDim.new(0,9)
+
+	local stroke=Instance.new("UIStroke")
+	stroke.Color=Color3.fromRGB(70,70,82)
+	stroke.Transparency=.3
+	stroke.Thickness=1
+	stroke.Parent=InfoFrame
+
+	local title=Instance.new("TextLabel")
+	title.Position=UDim2.new(0,14,0,9)
+	title.Size=UDim2.new(1,-110,0,23)
+	title.BackgroundTransparency=1
+	title.Font=Enum.Font.GothamBold
+	title.Text=object.Name
+	title.TextColor3=Color3.fromRGB(245,245,248)
+	title.TextSize=14
+	title.TextXAlignment=Enum.TextXAlignment.Left
+	title.TextTruncate=Enum.TextTruncate.AtEnd
+	title.Parent=InfoFrame
+
+	local subtitle=Instance.new("TextLabel")
+	subtitle.Position=UDim2.new(0,14,0,31)
+	subtitle.Size=UDim2.new(1,-110,0,16)
+	subtitle.BackgroundTransparency=1
+	subtitle.Font=Enum.Font.Gotham
+	subtitle.Text=object.ClassName
+	subtitle.TextColor3=Color3.fromRGB(125,125,138)
+	subtitle.TextSize=8
+	subtitle.TextXAlignment=Enum.TextXAlignment.Left
+	subtitle.Parent=InfoFrame
+
+	local close=Instance.new("TextButton")
+	close.AnchorPoint=Vector2.new(1,0)
+	close.Position=UDim2.new(1,-10,0,9)
+	close.Size=UDim2.new(0,32,0,30)
+	close.BackgroundColor3=Color3.fromRGB(35,35,42)
+	close.BorderSizePixel=0
+	close.Font=Enum.Font.GothamBold
+	close.Text="×"
+	close.TextColor3=Color3.fromRGB(235,235,240)
+	close.TextSize=18
+	close.AutoButtonColor=false
+	close.Parent=InfoFrame
+
+	Instance.new("UICorner",close).CornerRadius=UDim.new(0,6)
+
+	close.MouseButton1Click:Connect(function()
+		if typeof(closeObjectInfo)=="function" then
+			closeObjectInfo()
+		end
+	end)
+
+	local copy=Instance.new("TextButton")
+	copy.AnchorPoint=Vector2.new(1,0)
+	copy.Position=UDim2.new(1,-48,0,9)
+	copy.Size=UDim2.new(0,32,0,30)
+	copy.BackgroundColor3=Color3.fromRGB(35,35,42)
+	copy.BorderSizePixel=0
+	copy.Font=Enum.Font.GothamBold
+	copy.Text="C"
+	copy.TextColor3=Color3.fromRGB(215,215,225)
+	copy.TextSize=10
+	copy.AutoButtonColor=false
+	copy.Parent=InfoFrame
+
+	Instance.new("UICorner",copy).CornerRadius=UDim.new(0,6)
+
+	copy.MouseButton1Click:Connect(function()
+		local lines={
+			"Name: "..object.Name,
+			"ClassName: "..object.ClassName,
+			"Path: "..object:GetFullName()
+		}
+
+		for _,item in ipairs(getObjectInfo(object)) do
+			table.insert(
+				lines,
+				item[1]..": "..valueText(item[2])
+			)
+		end
+
+		if typeof(setclipboard)=="function" then
+			local ok=pcall(function()
+				setclipboard(table.concat(lines,"\n"))
+			end)
+
+			if ok then
+				copy.Text="OK"
+				task.delay(1,function()
+					if copy.Parent then
+						copy.Text="C"
+					end
+				end)
+			end
+		end
+	end)
+
+	local left=Instance.new("Frame")
+	left.Position=UDim2.new(0,10,0,58)
+	left.Size=UDim2.new(.54,-15,1,-68)
+	left.BackgroundTransparency=1
+	left.Parent=InfoFrame
+
+	local infoScroll=Instance.new("ScrollingFrame")
+	infoScroll.Size=UDim2.new(1,0,1,0)
+	infoScroll.BackgroundTransparency=1
+	infoScroll.BorderSizePixel=0
+	infoScroll.ScrollBarThickness=4
+	infoScroll.CanvasSize=UDim2.new()
+	infoScroll.AutomaticCanvasSize=Enum.AutomaticSize.Y
+	infoScroll.Parent=left
+
+	local infoLayout=Instance.new("UIListLayout")
+	infoLayout.Padding=UDim.new(0,4)
+	infoLayout.Parent=infoScroll
+
+	local right=Instance.new("Frame")
+	right.Position=UDim2.new(.54,5,0,58)
+	right.Size=UDim2.new(.46,-15,1,-68)
+	right.BackgroundColor3=Color3.fromRGB(8,8,11)
+	right.BorderSizePixel=0
+	right.Parent=InfoFrame
+
+	Instance.new("UICorner",right).CornerRadius=UDim.new(0,7)
+
+	local viewerTitle=Instance.new("TextLabel")
+	viewerTitle.Position=UDim2.new(0,8,0,5)
+	viewerTitle.Size=UDim2.new(1,-16,0,18)
+	viewerTitle.BackgroundTransparency=1
+	viewerTitle.Font=Enum.Font.GothamBold
+	viewerTitle.Text="3D VIEWER"
+	viewerTitle.TextColor3=Color3.fromRGB(150,150,160)
+	viewerTitle.TextSize=8
+	viewerTitle.TextXAlignment=Enum.TextXAlignment.Left
+	viewerTitle.Parent=right
+
+	local holder=Instance.new("Frame")
+	holder.Position=UDim2.new(0,6,0,28)
+	holder.Size=UDim2.new(1,-12,1,-34)
+	holder.BackgroundColor3=Color3.fromRGB(5,5,8)
+	holder.BorderSizePixel=0
+	holder.ClipsDescendants=true
+	holder.Parent=right
+
+	Instance.new("UICorner",holder).CornerRadius=UDim.new(0,6)
+
+	for i,item in ipairs(getObjectInfo(object)) do
+		addInfoLine(
+			infoScroll,
+			item[1],
+			item[2],
+			i
+		)
+	end
+
+	createViewport(object,holder)
+
+	InfoGui.AncestryChanged:Connect(function(_,parent)
+		if not parent then
+			destroyViewer()
+		end
+	end)
+end
+
+function openObjectInfo(object)
+	if not object or not object.Parent then
+		return
+	end
+
+	selectedObject=object
+	buildInfoWindow(object)
+end
+
+function closeObjectInfo()
+	if InfoGui then
+		InfoGui:Destroy()
+		InfoGui=nil
+	end
+
+	destroyViewer()
+end
+local function refreshInfo()
+	if not selectedObject then
+		return
+	end
+
+	if not selectedObject.Parent then
+		closeObjectInfo()
+		return
+	end
+
+	if InfoGui then
+		buildInfoWindow(selectedObject)
+	end
+end
+
+local function makeInfoButton(parent,text,callback)
+	local b=Instance.new("TextButton")
+	b.Size=UDim2.new(1,-8,0,30)
+	b.BackgroundColor3=Color3.fromRGB(28,28,35)
+	b.BorderSizePixel=0
+	b.Font=Enum.Font.GothamBold
+	b.Text=text
+	b.TextColor3=Color3.fromRGB(210,210,220)
+	b.TextSize=9
+	b.AutoButtonColor=false
+	b.Parent=parent
+
+	Instance.new("UICorner",b).CornerRadius=UDim.new(0,6)
+
+	b.MouseEnter:Connect(function()
+		b.BackgroundColor3=Color3.fromRGB(43,43,52)
+	end)
+
+	b.MouseLeave:Connect(function()
+		b.BackgroundColor3=Color3.fromRGB(28,28,35)
+	end)
+
+	if callback then
+		b.MouseButton1Click:Connect(callback)
+	end
+
+	return b
+end
+
+local function copySelectedPath()
+	if not selectedObject or not selectedObject.Parent then
+		return
+	end
+
+	if typeof(setclipboard)~="function" then
+		Status.Text="Clipboard indisponível"
+		return
+	end
+
+	local ok=pcall(function()
+		setclipboard(selectedObject:GetFullName())
+	end)
+
+	if ok then
+		Status.Text="Path copiado"
+	end
+end
+
+local function expandParents(object)
+	if not object then
+		return
+	end
+
+	local chain={}
+	local current=object.Parent
+
+	while current and current~=game do
+		table.insert(chain,current)
+		current=current.Parent
+	end
+
+	for _,parent in ipairs(chain) do
+		expanded[parent]=true
+	end
+end
+
+local function revealSelected()
+	if not selectedObject then
+		return
+	end
+
+	if selectedMode~="All" then
+		selectedMode="All"
+		updateModeButtons()
+	end
+
+	expandParents(selectedObject)
+	renderExplorer()
+
+	task.defer(function()
+		local button=buttons[selectedObject]
+
+		if button and button.Parent then
+			Results.CanvasPosition=Vector2.new(
+				0,
+				math.max(0,button.AbsolutePosition.Y-Results.AbsolutePosition.Y-40)
+			)
+			select(selectedObject,button)
+		end
+	end)
+end
+
+local function createQuickActions(object,parent)
+	if not object then
+		return
+	end
+
+	local actions=Instance.new("Frame")
+	actions.Position=UDim2.new(0,0,0,0)
+	actions.Size=UDim2.new(1,0,0,34)
+	actions.BackgroundTransparency=1
+	actions.Parent=parent
+
+	local layout=Instance.new("UIListLayout")
+	layout.FillDirection=Enum.FillDirection.Horizontal
+	layout.Padding=UDim.new(0,5)
+	layout.Parent=actions
+
+	local copy=makeInfoButton(actions,"COPY PATH",copySelectedPath)
+	copy.Size=UDim2.new(0,100,1,0)
+
+	local reveal=makeInfoButton(actions,"REVEAL",revealSelected)
+	reveal.Size=UDim2.new(0,80,1,0)
+
+	local refresh=makeInfoButton(actions,"REFRESH",refreshInfo)
+	refresh.Size=UDim2.new(0,80,1,0)
+end
+
+local function createObjectActionBar(object)
+	if not InfoFrame then
+		return
+	end
+
+	local old=InfoFrame:FindFirstChild("QuickActions")
+	if old then
+		old:Destroy()
+	end
+
+	local frame=Instance.new("Frame")
+	frame.Name="QuickActions"
+	frame.Position=UDim2.new(0,12,1,-42)
+	frame.Size=UDim2.new(1,-24,0,32)
+	frame.BackgroundTransparency=1
+	frame.Parent=InfoFrame
+
+	local layout=Instance.new("UIListLayout")
+	layout.FillDirection=Enum.FillDirection.Horizontal
+	layout.Padding=UDim.new(0,5)
+	layout.Parent=frame
+
+	local copy=makeInfoButton(frame,"COPY PATH",copySelectedPath)
+	copy.Size=UDim2.new(0,100,1,0)
+
+	local reveal=makeInfoButton(frame,"REVEAL",revealSelected)
+	reveal.Size=UDim2.new(0,80,1,0)
+
+	local refresh=makeInfoButton(frame,"REFRESH",refreshInfo)
+	refresh.Size=UDim2.new(0,80,1,0)
+
+	return frame
+end
+
+local oldBuild=buildInfoWindow
+
+buildInfoWindow=function(object)
+	oldBuild(object)
+	createObjectActionBar(object)
+end
+
+local function scanEverything()
+	selectedMode="All"
+	updateModeButtons()
+	Search.Text=""
+	performScan()
+end
+
+local function scanCurrentSearch()
+	performScan()
+end
+
+local function clearSearch()
+	Search.Text=""
+	clear()
+	Status.Text="Busca limpa"
+end
+
+local ClearSearch=New("TextButton",{
+	AnchorPoint=Vector2.new(1,0),
+	Position=UDim2.new(1,-14,0,17),
+	Size=UDim2.new(0,22,0,20),
+	BackgroundTransparency=1,
+	Font=Enum.Font.GothamBold,
+	Text="×",
+	TextColor3=Color3.fromRGB(105,105,115),
+	TextSize=16,
+	AutoButtonColor=false
+},Content)
+
+ClearSearch.MouseButton1Click:Connect(clearSearch)
+
+ClearSearch.MouseEnter:Connect(function()
+	ClearSearch.TextColor3=Color3.fromRGB(230,230,235)
+end)
+
+ClearSearch.MouseLeave:Connect(function()
+	ClearSearch.TextColor3=Color3.fromRGB(105,105,115)
+end)
+
+Search:GetPropertyChangedSignal("Text"):Connect(function()
+	if Search.Text=="" and selectedMode~="All" then
+		Status.Text="Digite algo para pesquisar"
+	end
+end)
+
+local function sourceRootChanged()
+	if selectedObject and not selectedObject:IsDescendantOf(root()) then
+		selectedObject=nil
+	end
+
+	clear()
+
+	if selectedMode=="All" then
+		renderExplorer()
+	end
+end
+
+local sourceConnections={}
+
+local function connectSourceWatch(sourceObject)
+	if not sourceObject then
+		return
+	end
+
+	local add=sourceObject.DescendantAdded:Connect(function()
+		if selectedMode=="All" and not scanning and not minimized then
+			task.defer(function()
+				if not scanning then
+					renderExplorer()
+				end
+			end)
+		end
+	end)
+
+	local remove=sourceObject.DescendantRemoving:Connect(function(object)
+		if selectedObject==object then
+			selectedObject=nil
+		end
+
+		if selectedMode=="All" and not scanning and not minimized then
+			task.defer(function()
+				if not scanning then
+					renderExplorer()
+				end
+			end)
+		end
+	end)
+
+	table.insert(sourceConnections,add)
+	table.insert(sourceConnections,remove)
+end
+
+connectSourceWatch(workspace)
+connectSourceWatch(ReplicatedStorage)
+connectSourceWatch(Players)
+
+local function cleanupConnections()
+	for _,connection in ipairs(sourceConnections) do
+		pcall(function()
+			connection:Disconnect()
+		end)
+	end
+
+	table.clear(sourceConnections)
+end
+
+local function countObjects(object)
+	local total=1
+	local meaningfulCount=0
+
+	if isMeaningful(object) then
+		meaningfulCount=1
+	end
+
+	for _,child in ipairs(object:GetDescendants()) do
+		total+=1
+
+		if isMeaningful(child) then
+			meaningfulCount+=1
+		end
+	end
+
+	return total,meaningfulCount
+end
+
+local function updateRootStatus()
+	local r=root()
+
+	if not r then
+		Status.Text="Fonte indisponível"
+		return
+	end
+
+	local total,meaningfulCount=countObjects(r)
+
+	Status.Text=string.format(
+		"%s • %d objetos • %d exibíveis",
+		r.Name,
+		total,
+		meaningfulCount
+	)
+end
+
+local function addSearchHint()
+	if selectedMode=="All" then
+		return
+	end
+
+	if Search.Text=="" then
+		Status.Text="Digite um nome e pressione SCAN"
+	end
+end
+
+local function handleEnter()
+	if UIS:IsKeyDown(Enum.KeyCode.LeftShift)
+		or UIS:IsKeyDown(Enum.KeyCode.RightShift) then
+		scanEverything()
+	else
+		scanCurrentSearch()
+	end
+end
+
+Search.FocusLost:Connect(function(enterPressed)
+	if enterPressed then
+		handleEnter()
+	else
+		addSearchHint()
+	end
+end)
+
+UIS.InputBegan:Connect(function(input,gameProcessed)
+	if gameProcessed then
+		return
+	end
+
+	if input.KeyCode==Enum.KeyCode.Escape then
+		if InfoGui then
+			closeObjectInfo()
+			return
+		end
+	end
+
+	if input.KeyCode==Enum.KeyCode.F5 then
+		if not InfoGui then
+			performScan()
+		end
+	end
+
+	if input.KeyCode==Enum.KeyCode.F6 then
+		if selectedObject then
+			openObjectInfo(selectedObject)
+		end
+	end
+end)
+
+local function setMode(mode)
+	selectedMode=mode
+	updateModeButtons()
+
+	if mode=="All" then
+		Search.Text=""
+		performScan()
+	else
+		Status.Text=mode=="Exact"
+			and "Exact: digite o nome"
+			or "Aproximado: digite parte do nome"
+	end
+end
+
+local function setSource(sourceName)
+	selectedSource=sourceName
+	updateSourceButtons()
+	clear()
+
+	Status.Text=sourceName.." selecionado"
+
+	if selectedMode=="All" then
+		task.defer(performScan)
+	end
+end
+
+WB.MouseButton1Click:Connect(function()
+	setSource("Workspace")
+end)
+
+RB.MouseButton1Click:Connect(function()
+	setSource("ReplicatedStorage")
+end)
+
+PB.MouseButton1Click:Connect(function()
+	setSource("Players")
+end)
+
+EB.MouseButton1Click:Connect(function()
+	setMode("Exact")
+end)
+
+AB.MouseButton1Click:Connect(function()
+	setMode("Approx")
+end)
+
+TB.MouseButton1Click:Connect(function()
+	setMode("All")
+end)
+
+local oldMinimize=Min.MouseButton1Click
+
+local infoOpen=false
+
+local function closeIfInfo()
+	if InfoGui then
+		closeObjectInfo()
+		infoOpen=false
+		return true
+	end
+
+	return false
+end
+
+local originalOpen=openObjectInfo
+
+openObjectInfo=function(object)
+	if not object or not object.Parent then
+		return
+	end
+
+	selectedObject=object
+	infoOpen=true
+
+	originalOpen(object)
+end
+
+local originalClose=closeObjectInfo
+
+closeObjectInfo=function()
+	infoOpen=false
+	originalClose()
+end
+
+local function destroyAll()
+	closeObjectInfo()
+	cleanupConnections()
+
+	pcall(function()
+		Gui:Destroy()
+	end)
+end
+
+Gui.AncestryChanged:Connect(function(_,parent)
+	if not parent then
+		cleanupConnections()
+		destroyViewer()
+	end
+end)
+
+updateSourceButtons()
+updateModeButtons()
+
+if selectedMode=="All" then
+	renderExplorer()
+else
+	renderExplorer()
+end
+
+Status.Text="Pronto • Gomes Explorer"
+local function finalTreeVisible(obj)
+    if not obj then
+        return false
+    end
+
+    if obj:IsA("BasePart") then
+        return false
+    end
+
+    if obj:IsA("Attachment") then
+        return false
+    end
+
+    if obj:IsA("ParticleEmitter") or obj:IsA("Beam") or obj:IsA("Trail") then
+        return false
+    end
+
+    return meaningful[obj.ClassName] == true
+        or obj:IsA("Model")
+        or obj:IsA("Folder")
+        or obj:IsA("Configuration")
+        or obj:IsA("Tool")
+        or obj:IsA("ScreenGui")
+        or obj:IsA("GuiObject")
+end
+
+local function finalHasVisibleChild(obj)
+    for _, child in ipairs(obj:GetChildren()) do
+        if finalTreeVisible(child) then
+            return true
+        end
+
+        if finalHasVisibleChild(child) then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function finalShouldShow(obj)
+    if not obj then
+        return false
+    end
+
+    if selectedMode == "All" then
+        return finalTreeVisible(obj) or finalHasVisibleChild(obj)
+    end
+
+    return true
+end
+
+local function finalRenderExplorer()
+    clear()
+
+    local sourceRoot = source()
+
+    if not sourceRoot then
+        Status.Text = "Fonte não encontrada"
+        return
+    end
+
+    local children = sourceRoot:GetChildren()
+
+    table.sort(children, function(a,b)
+        return a.Name:lower() < b.Name:lower()
+    end)
+
+    local shown = 0
+
+    local function addNode(obj, depth)
+        if shown > 1200 then
+            return
+        end
+
+        if not finalShouldShow(obj) then
+            return
+        end
+
+        shown += 1
+
+        local row = treeButton(obj, depth)
+
+        if expanded[obj] then
+            local sub = {}
+
+            for _, child in ipairs(obj:GetChildren()) do
+                if finalShouldShow(child) then
+                    table.insert(sub, child)
+                end
+            end
+
+            table.sort(sub, function(a,b)
+                return a.Name:lower() < b.Name:lower()
+            end)
+
+            for _, child in ipairs(sub) do
+                addNode(child, depth + 1)
+            end
+        end
+    end
+
+    for _, obj in ipairs(children) do
+        addNode(obj, 0)
+    end
+
+    if shown == 0 then
+        local empty = Instance.new("TextLabel")
+        empty.Size = UDim2.new(1,-20,0,40)
+        empty.Position = UDim2.new(0,10,0,10)
+        empty.BackgroundTransparency = 1
+        empty.Text = "Nenhum objeto relevante encontrado"
+        empty.TextColor3 = Color3.fromRGB(150,150,150)
+        empty.TextSize = 13
+        empty.Font = Enum.Font.Gotham
+        empty.Parent = Results
+    end
+
+    Status.Text = tostring(shown) .. " objeto(s)"
+end
+
+renderExplorer = finalRenderExplorer
+
+local function finalSearchObjects(text)
+    local rootObject = source()
+
+    if not rootObject then
+        return {}
+    end
+
+    text = tostring(text or ""):lower()
+
+    if text == "" then
+        return {}
+    end
+
+    local found = {}
+
+    local all = rootObject:GetDescendants()
+
+    for _, obj in ipairs(all) do
+        local name = obj.Name:lower()
+        local className = obj.ClassName:lower()
+
+        local match = false
+
+        if selectedMode == "Exact" then
+            match = name == text
+        elseif selectedMode == "Approximate" then
+            match = name:find(text, 1, true) ~= nil
+        else
+            match =
+                name:find(text, 1, true) ~= nil
+                or className:find(text, 1, true) ~= nil
+        end
+
+        if match then
+            table.insert(found, obj)
+        end
+    end
+
+    table.sort(found, function(a,b)
+        local an = a.Name:lower()
+        local bn = b.Name:lower()
+
+        if an == bn then
+            return a.ClassName < b.ClassName
+        end
+
+        return an < bn
+    end)
+
+    return found
+end
+
+searchObjects = finalSearchObjects
+
+local function finalRenderSearch(results)
+    clear()
+
+    currentResults = results or {}
+
+    if #currentResults == 0 then
+        local empty = Instance.new("TextLabel")
+        empty.Size = UDim2.new(1,-20,0,50)
+        empty.Position = UDim2.new(0,10,0,10)
+        empty.BackgroundTransparency = 1
+        empty.Text = "Nenhum resultado"
+        empty.TextColor3 = Color3.fromRGB(145,145,145)
+        empty.TextSize = 13
+        empty.Font = Enum.Font.Gotham
+        empty.Parent = Results
+
+        Status.Text = "0 resultado(s)"
+        return
+    end
+
+    for _, obj in ipairs(currentResults) do
+        if obj and obj.Parent then
+            treeButton(obj, 0)
+        end
+    end
+
+    Status.Text = tostring(#currentResults) .. " resultado(s)"
+end
+
+renderSearch = finalRenderSearch
+
+local function refreshExplorer()
+    if minimized then
+        return
+    end
+
+    local text = SearchBox.Text
+
+    if text ~= "" then
+        renderSearch(searchObjects(text))
+    else
+        renderExplorer()
+    end
+end
+
+local Refresh = Instance.new("TextButton")
+Refresh.Name = "Refresh"
+Refresh.Size = UDim2.new(0,72,0,30)
+Refresh.Position = UDim2.new(1,-82,0,55)
+Refresh.BackgroundColor3 = Color3.fromRGB(35,35,35)
+Refresh.BorderSizePixel = 0
+Refresh.Text = "↻"
+Refresh.TextColor3 = Color3.fromRGB(230,230,230)
+Refresh.TextSize = 18
+Refresh.Font = Enum.Font.GothamBold
+Refresh.Parent = Main
+
+local refreshCorner = Instance.new("UICorner")
+refreshCorner.CornerRadius = UDim.new(0,7)
+refreshCorner.Parent = Refresh
+
+Refresh.MouseButton1Click:Connect(function()
+    refreshExplorer()
+end)
+
+local function getObjectChildrenCount(obj)
+    local count = 0
+
+    if not obj then
+        return 0
+    end
+
+    for _ in ipairs(obj:GetChildren()) do
+        count += 1
+    end
+
+    return count
+end
+
+local function getDescendantCount(obj)
+    local count = 0
+
+    if not obj then
+        return 0
+    end
+
+    for _ in ipairs(obj:GetDescendants()) do
+        count += 1
+    end
+
+    return count
+end
+
+local function updateInfoSelection()
+    if not selectedObject then
+        return
+    end
+
+    if not selectedObject.Parent then
+        selectedObject = nil
+        return
+    end
+
+    if InfoGui and InfoGui.Parent then
+        pcall(function()
+            refreshInfo(selectedObject)
+        end)
+    end
+end
+
+local function monitorObject(obj)
+    if not obj then
+        return
+    end
+
+    local c1
+    local c2
+
+    pcall(function()
+        c1 = obj:GetPropertyChangedSignal("Name"):Connect(function()
+            if selectedObject == obj then
+                updateInfoSelection()
+            end
+        end)
+
+        c2 = obj.AncestryChanged:Connect(function()
+            if selectedObject == obj and not obj.Parent then
+                closeObjectInfo()
+                selectedObject = nil
+            end
+        end)
+
+        table.insert(Connections,c1)
+        table.insert(Connections,c2)
+    end)
+end
+
+local function selectAndMonitor(obj)
+    select(obj)
+    monitorObject(obj)
+end
+
+select = selectAndMonitor
+
+local oldTreeButton = treeButton
+
+treeButton = function(obj, depth)
+    local button = oldTreeButton(obj, depth)
+
+    if button then
+        button.MouseButton1Click:Connect(function()
+            selectedObject = obj
+        end)
+    end
+
+    return button
+end
+
+local function fixSearchEnter()
+    SearchBox.FocusLost:Connect(function(enterPressed)
+        if not enterPressed then
+            return
+        end
+
+        local text = SearchBox.Text
+
+        if text == "" then
+            renderExplorer()
+        else
+            renderSearch(searchObjects(text))
+        end
+    end)
+end
+
+fixSearchEnter()
+
+local function clearAllResults()
+    SearchBox.Text = ""
+    currentResults = {}
+    selectedObject = nil
+    expanded = {}
+
+    if not minimized then
+        renderExplorer()
+    end
+
+    Status.Text = "Resultados limpos"
+end
+
+local Clear = Instance.new("TextButton")
+Clear.Name = "Clear"
+Clear.Size = UDim2.new(0,70,0,30)
+Clear.Position = UDim2.new(1,-160,0,55)
+Clear.BackgroundColor3 = Color3.fromRGB(35,35,35)
+Clear.BorderSizePixel = 0
+Clear.Text = "LIMPAR"
+Clear.TextColor3 = Color3.fromRGB(225,225,225)
+Clear.TextSize = 10
+Clear.Font = Enum.Font.GothamBold
+Clear.Parent = Main
+
+local clearCorner = Instance.new("UICorner")
+clearCorner.CornerRadius = UDim.new(0,7)
+clearCorner.Parent = Clear
+
+Clear.MouseButton1Click:Connect(clearAllResults)
+
+local function setStatus(text)
+    if Status then
+        Status.Text = tostring(text)
+    end
+end
+
+local function safeRefresh()
+    task.defer(function()
+        pcall(function()
+            refreshExplorer()
+        end)
+    end)
+end
+
+local function connectChildRefresh(container)
+    if not container then
+        return
+    end
+
+    local a = container.ChildAdded:Connect(function()
+        if SearchBox.Text ~= "" then
+            safeRefresh()
+        end
+    end)
+
+    local b = container.ChildRemoved:Connect(function()
+        if SearchBox.Text ~= "" then
+            safeRefresh()
+        end
+    end)
+
+    table.insert(Connections,a)
+    table.insert(Connections,b)
+end
+
+connectChildRefresh(workspace)
+connectChildRefresh(ReplicatedStorage)
+connectChildRefresh(Players)
+
+local function getSourceName()
+    if selectedSource == "Workspace" then
+        return "Workspace"
+    elseif selectedSource == "ReplicatedStorage" then
+        return "ReplicatedStorage"
+    elseif selectedSource == "Players" then
+        return "Players"
+    end
+
+    return tostring(selectedSource)
+end
+
+local function updateHeader()
+    if Header then
+        Header.Text = "GOMES EXPLORER  •  " .. getSourceName()
+    end
+end
+
+local oldSetSource = setSource
+
+setSource = function(name)
+    oldSetSource(name)
+    updateHeader()
+end
+
+local oldSetMode = setMode
+
+setMode = function(mode)
+    oldSetMode(mode)
+    updateHeader()
+end
+
+updateHeader()
+
+local function verifySelected()
+    if selectedObject and selectedObject.Parent then
+        return true
+    end
+
+    selectedObject = nil
+    return false
+end
+
+local function copyText(text)
+    if not text then
+        return false
+    end
+
+    local copied = false
+
+    pcall(function()
+        if setclipboard then
+            setclipboard(tostring(text))
+            copied = true
+        elseif toclipboard then
+            toclipboard(tostring(text))
+            copied = true
+        elseif Clipboard then
+            Clipboard(tostring(text))
+            copied = true
+        end
+    end)
+
+    return copied
+end
+
+local function copyExplorerSelection()
+    if not verifySelected() then
+        setStatus("Nenhum objeto selecionado")
+        return
+    end
+
+    local p = path(selectedObject)
+
+    if copyText(p) then
+        setStatus("Caminho copiado")
+    else
+        setStatus("Clipboard indisponível")
+    end
+end
+
+local CopySelection = Instance.new("TextButton")
+CopySelection.Name = "CopySelection"
+CopySelection.Size = UDim2.new(0,72,0,30)
+CopySelection.Position = UDim2.new(1,-82,0,91)
+CopySelection.BackgroundColor3 = Color3.fromRGB(35,35,35)
+CopySelection.BorderSizePixel = 0
+CopySelection.Text = "COPY"
+CopySelection.TextColor3 = Color3.fromRGB(225,225,225)
+CopySelection.TextSize = 10
+CopySelection.Font = Enum.Font.GothamBold
+CopySelection.Parent = Main
+
+local copyCorner = Instance.new("UICorner")
+copyCorner.CornerRadius = UDim.new(0,7)
+copyCorner.Parent = CopySelection
+
+CopySelection.MouseButton1Click:Connect(copyExplorerSelection)
+
+local function updateCounts()
+    local r = source()
+
+    if not r then
+        return
+    end
+
+    local total = getDescendantCount(r)
+
+    if SearchBox.Text == "" then
+        Status.Text = getSourceName() .. " • " .. tostring(total) .. " objetos"
+    end
+end
+
+task.spawn(function()
+    while Gui and Gui.Parent do
+        task.wait(2)
+
+        if not scanning and SearchBox.Text == "" and not minimized then
+            pcall(updateCounts)
+        end
+    end
+end)
+
+UIS.InputBegan:Connect(function(input, processed)
+    if processed then
+        return
+    end
+
+    if input.KeyCode == Enum.KeyCode.F5 then
+        safeRefresh()
+    elseif input.KeyCode == Enum.KeyCode.F6 then
+        clearAllResults()
+    end
+end)
+
+local function closeOnOutsideClick(input)
+    if not InfoGui or not InfoGui.Parent then
+        return
+    end
+
+    if input.UserInputType ~= Enum.UserInputType.MouseButton1 then
+        return
+    end
+
+    local pos = input.Position
+
+    if not InfoFrame then
+        return
+    end
+
+    local p = InfoFrame.AbsolutePosition
+    local s = InfoFrame.AbsoluteSize
+
+    local inside =
+        pos.X >= p.X
+        and pos.X <= p.X + s.X
+        and pos.Y >= p.Y
+        and pos.Y <= p.Y + s.Y
+
+    if not inside then
+        closeObjectInfo()
+    end
+end
+
+UIS.InputBegan:Connect(closeOnOutsideClick)
+
+local function cleanupExplorer()
+    pcall(function()
+        cleanupConnections()
+    end)
+
+    pcall(function()
+        closeObjectInfo()
+    end)
+
+    pcall(function()
+        if Gui then
+            Gui:Destroy()
+        end
+    end)
+end
+
+_G.GomesExplorerCleanup = cleanupExplorer
+
+if not Gui.Parent then
+    return
+end
+
+setStatus("Gomes Explorer pronto")
+updateHeader()
+updateCounts()
+refreshExplorer()
