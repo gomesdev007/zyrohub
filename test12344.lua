@@ -4082,737 +4082,198 @@ local function aM(...) h.alive = false pcall(Ik)pcall(Ak)pcall(function(...) y:S
     )
 end
 local function oM(...)
-    local e=jM()
-    local r=nil pcall(function(...) r=(loadstring(game:HttpGet( "https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua" )))()
+    if h.gui then
+        pcall(function() h.gui:Destroy() end)
+        h.gui=nil
     end
-    )
-    local function j(e,...)
-        if not e then
-            return
-        end
-        local y= false
-        if r and r.Notify then
-            local u=pcall(function(...) r:Notify(e)y= true
-            end
-            )
-        end
-        if not y then
-            pcall(function(...)
-                (game:GetService( "StarterGui" )):SetCore( "SendNotification" ,{[ "Title" ]=tostring(e.Title or "Dice Hub" ),[ "Text" ]=tostring(e.Content or "" );
-                [ "Duration" ]= 3 })
-            end
-            )
-        end
-    end
-    if r then
-        pcall(function(...)
-            local e=r.Notify
-            if e then
-                r.Notify =function(r,y,...)
-                    local u=pcall(function(...) e(r,y)
-                    end
-                    )
-                    if not u then
-                        pcall(function(...)
-                            (game:GetService( "StarterGui" )):SetCore( "SendNotification" ,{[ "Title" ]=tostring(y and y.Title or "Dice Hub" );
-                            [ "Text" ]=tostring(y and y.Content or "" ),[ "Duration" ]= 3 })
-                        end
-                        )
-                    end
-                end
-            end
-        end
-        )
-        local k=workspace.CurrentCamera
-        local a=k and k.ViewportSize or Vector2.new ( 1280 , 720 )
-        local V=w.TouchEnabled and not w.KeyboardEnabled
-        local H=V and math.clamp (a.X * 0.7 , 440 , 500 )or 500
-        local t=V and math.clamp (a.Y * 0.72 , 280 , 340 )or 340
-        local s=UDim2.fromOffset (H,t)
-        local p=r:CreateWindow({[ "Title" ]= "Dice Hub" ;
-        [ "Author" ]= "Steal An Egg V1" ;
-        [ "Folder" ]= "Dice_StealAnEgg" ;
-        [ "Icon" ]=dk;
-        [ "Theme" ]= "Dark" ,[ "IconSize" ]= 28 ,[ "Size" ]=s,[ "MinSize" ]=Vector2.new ( 400 , 240 );
-        [ "MaxSize" ]=Vector2.new ( 900 , 600 ),[ "Resizable" ]= true ,[ "SideBarWidth" ]=V and 140 or 160 ,[ "ToggleKey" ]=Enum.KeyCode.RightShift ;
-        [ "IgnoreAlerts" ]= true ,[ "Topbar" ]={[ "Height" ]= 44 ,[ "ButtonsType" ]= "Default" }})
-        Window=p
-        p.IgnoreAlerts = true pcall(function(...)
-            if p.UIElements and p.UIElements.Main then
-                p.UIElements.Main .Visible = false
-            end
-        end
-        )
-        local B=p:Tag({[ "Title" ]= "Status: Ready" ;
-        [ "Color" ]=Color3.fromRGB ( 0 , 255 , 160 ),[ "Border" ]= true })
-        local J= 44
-        local K= false
-        local c= false
-        local v=t task.spawn (function(...) task.wait ( 0.1 )
-            local e=p.UIElements and p.UIElements.Main
-            if e then
-                if e.AnchorPoint.Y ~= 0 then
-                    local y=e.Size.Y .Offset > 0 and e.Size.Y .Offset or t e.Position =UDim2.new (e.Position.X .Scale ,e.Position.X .Offset ,e.Position.Y .Scale ,e.Position.Y .Offset -(y*e.AnchorPoint.Y ))e.AnchorPoint =Vector2.new ( 0.5 , 0 )
-                end
-                e.ClipsDescendants = false mk(e)
-            end
-        end
-        )
-        local function i(...)
-            local e=p.UIElements and p.UIElements.Main
-            if not e or c then
-                return
-            end
-            c= true K=not K
-            local r=p.UIElements.SideBarContainer
-            local y=p.UIElements.MainBar
-            local w=e:FindFirstChild( "Background" )
-            local j=e:FindFirstChild( "Main" )
-            if e.AnchorPoint.Y ~= 0 then
-                local r=e.Size.Y .Offset > 0 and e.Size.Y .Offset or v e.Position =UDim2.new (e.Position.X .Scale ,e.Position.X .Offset ,e.Position.Y .Scale ,e.Position.Y .Offset -(r*e.AnchorPoint.Y ))e.AnchorPoint =Vector2.new ( 0.5 , 0 )
-            end
-            local k=e.Size.X .Scale
-            local a=e.Size.X .Offset
-            if K then
-                if e.Size.Y .Offset >J then
-                    v=e.Size.Y .Offset
-                end
-                e.ClipsDescendants = true
-                if w then
-                    w.ClipsDescendants = true
-                end
-                if j then
-                    j.ClipsDescendants = true
-                end
-                if r then
-                    r.Visible = false
-                end
-                if y then
-                    y.Visible = false
-                end
-                e.Visible = true
-                if j then
-                    j.Visible = true
-                end
-                local V=u:Create(e,TweenInfo.new ( 0.24 ,Enum.EasingStyle.Quart ,Enum.EasingDirection.Out ),{[ "Size" ]=UDim2.new (k,a, 0 ,J)})V:Play()task.delay ( 0.25 ,function(...) c= false
-                end
-                )
-            else
-                e.Visible = true
-                if j then
-                    j.Visible = true
-                end
-                local V=v or t
-                if r then
-                    r.Visible = true
-                end
-                if y then
-                    y.Visible = true
-                end
-                if p.TabModule and p.TabModule.SelectedTab then
-                    pcall(function(...) p.TabModule :SelectTab(p.TabModule.SelectedTab )
-                    end
-                    )
-                end
-                local H=u:Create(e,TweenInfo.new ( 0.24 ,Enum.EasingStyle.Quart ,Enum.EasingDirection.Out ),{[ "Size" ]=UDim2.new (k,a, 0 ,V)})H:Play()task.delay ( 0.25 ,function(...)
-                    if not K then
-                        e.ClipsDescendants = false
-                        if w then
-                            w.ClipsDescendants = false
-                        end
-                        if j then
-                            j.ClipsDescendants = false
-                        end
-                        if r then
-                            r.Visible = true
-                        end
-                        if y then
-                            y.Visible = true
-                        end
-                        if p.TabModule and p.TabModule.SelectedTab then
-                            pcall(function(...) p.TabModule :SelectTab(p.TabModule.SelectedTab )
-                            end
-                            )
-                        end
-                    end
-                    c= false
-                end
-                )
-            end
-        end
-        p.Close =function(e,...) i()
-            local r={}function r.Destroy(e,...) aM()
-            end
-            return r
-        end
-        local function R(...)
-            if p.UIElements and p.UIElements.Main then
-                (u:Create(kM.Btn ,TweenInfo.new ( 0.12 ,Enum.EasingStyle.Quart ),{[ "Size" ]=UDim2.fromOffset ( 42 , 42 )})):Play()task.wait ( 0.08 )kM.Btn.Size =UDim2.fromOffset ( 46 , 46 )p.UIElements.Main .Visible = true kM.Btn.Visible = false
-                if p.TabModule and p.TabModule.SelectedTab then
-                    pcall(function(...) p.TabModule :SelectTab(p.TabModule.SelectedTab )
-                    end
-                    )
-                end
-            end
-        end
-        local function g(...)
-            if p.UIElements and p.UIElements.Main then
-                p.UIElements.Main .Visible = false kM.Btn.Visible = true
-            end
-        end
-        kM.Btn.MouseButton1Click :Connect(R)p.Destroy =function(e,...) g()
-        end
-        w.InputBegan :Connect(function(e,r,...)
-            if not r and e.KeyCode ==Enum.KeyCode.RightShift then
-                if p.UIElements and p.UIElements.Main then
-                    if p.UIElements.Main .Visible then
-                        g()
-                    else
-                        R()
-                    end
-                end
-            end
-        end
-        )
-        local function Q(e,...)
-            local r=math.clamp (tonumber(e)or 0 , 0 , 90 )
-            local y=r/ 100 pcall(function(...)
-                local e=p.UIElements and p.UIElements.Main
-                if not e then
-                    return
-                end
-                if p.AcrylicPaint and p.AcrylicPaint.Frame then
-                    p.AcrylicPaint.Frame .Visible =(r== 0 )
-                end
-                local u=e:FindFirstChild( "Background" )
-                if u then
-                    if u:IsA( "ImageLabel" )then
-                        u.ImageTransparency =y
-                    elseif u:IsA( "Frame" )then
-                        u.BackgroundTransparency =y
-                    end
-                end
-            end
-            )
-        end
-        local P={
-            Tabs={Farm="Auto Farm"},
-            Farm={
-                SecModes="Auto Steal",
-                TeleportTitle="Auto Steal (Teleport)",
-                TeleportDesc="Teleport to steal eggs continuously",
-                SpeedTitle="Flight Speed",
-                SpeedDesc="Adjust the flight speed used by the auto farm",
-                ZonesTitle="Target Zones",
-                ZonesDesc="Select which zones can be farmed",
-                RaritiesTitle="Target Rarities",
-                RaritiesDesc="Select which rarities can be farmed",
-                SecretTitle="Always Steal Secret+",
-                SecretDesc="Always target Secret, Eternal and Divine eggs"
-            }
-        }
 
-        hk=p:Tab({
-            ["Title"]=P.Tabs.Farm,
-            ["Icon"]="solar:box-minimalistic-bold"
-        })
-
-        Fk.secModes=hk:Section({["Title"]=P.Farm.SecModes})
-
-        local N=false
-        local teleportToggle=nil
-
-        teleportToggle=hk:Toggle({
-            ["Title"]=P.Farm.TeleportTitle,
-            ["Desc"]=P.Farm.TeleportDesc,
-            ["Icon"]="solar:magic-stick-3-bold",
-            ["Value"]=h.autoFarmLoop,
-            ["Callback"]=function(enabled)
-                if N then return end
-                if enabled then
-                    T4("WARP")
-                else
-                    if Y4=="WARP" or h.autoFarmLoop then
-                        T4("NONE")
-                    end
-                end
-            end
-        })
-
-        W4=function(enabled)
-            pcall(function()
-                if teleportToggle and teleportToggle.Set then
-                    N=true
-                    teleportToggle:Set(enabled)
-                    N=false
-                end
-            end)
-        end
-
-        x4=function() end
-
-        Fk.secEggZones=hk:Section({["Title"]=P.Farm.ZonesTitle})
-
-        local zoneValues={
-            "Light Dark","Titan Temple","Cherry Blossom","Cosmic",
-            "Prehistoric","Abyss Ocean","Volcano","Snow",
-            "Jungle","Desert","Lake","Forest"
-        }
-
-        local zoneDisplay={}
-        for _,zone in ipairs(zoneValues) do
-            zoneDisplay[zone]=zone
-        end
-
-        local selectedZones={}
-        for zone,enabled in pairs(h.selectedZones or {}) do
-            if enabled and zoneDisplay[zone] then
-                table.insert(selectedZones,zoneDisplay[zone])
-            end
-        end
-
-        Fk.dropTargetZones=hk:Dropdown({
-            ["Title"]=P.Farm.ZonesTitle,
-            ["Desc"]=P.Farm.ZonesDesc,
-            ["Values"]=zoneValues,
-            ["Value"]=selectedZones,
-            ["Multi"]=true,
-            ["Callback"]=function(value)
-                local selected={}
-                local function add(item)
-                    if type(item)=="table" then
-                        item=item.Title or item.Name or item[1] or ""
-                    end
-                    item=tostring(item or "")
-                    for _,zone in ipairs(zoneValues) do
-                        if item==zone or string.find(string.lower(item),string.lower(zone),1,true) then
-                            selected[zone]=true
-                            break
-                        end
-                    end
-                end
-                if type(value)=="table" then
-                    for key,item in pairs(value) do
-                        if type(item)=="string" or type(item)=="table" then
-                            add(item)
-                        elseif type(key)=="string" and item==true then
-                            add(key)
-                        end
-                    end
-                elseif type(value)=="string" then
-                    add(value)
-                end
-                h.selectedZones=selected
-                pcall(x)
-            end
-        })
-
-        Fk.secEggRarity=hk:Section({["Title"]=P.Farm.RaritiesTitle})
-
-        local rarityValues={
-            "Divine","Eternal","Secret","Cosmic","Mythic",
-            "Legendary","Epic","Rare","Uncommon","Common"
-        }
-
-        local selectedRarities={}
-        for rarity,enabled in pairs(h.selectedRarities or {}) do
-            if enabled then table.insert(selectedRarities,rarity) end
-        end
-
-        Fk.dropTargetRarities=hk:Dropdown({
-            ["Title"]=P.Farm.RaritiesTitle,
-            ["Desc"]=P.Farm.RaritiesDesc,
-            ["Values"]=rarityValues,
-            ["Value"]=selectedRarities,
-            ["Multi"]=true,
-            ["Callback"]=function(value)
-                local selected={}
-                local function add(item)
-                    if type(item)=="table" then
-                        item=item.Title or item.Name or item[1] or ""
-                    end
-                    local text=string.lower(tostring(item or ""))
-                    for _,rarity in ipairs(rarityValues) do
-                        if string.find(text,string.lower(rarity),1,true) then
-                            selected[rarity]=true
-                            break
-                        end
-                    end
-                end
-                if type(value)=="table" then
-                    for key,item in pairs(value) do
-                        if type(item)=="string" or type(item)=="table" then
-                            add(item)
-                        elseif type(key)=="string" and item==true then
-                            add(key)
-                        end
-                    end
-                elseif type(value)=="string" then
-                    add(value)
-                end
-                h.selectedRarities=selected
-                pcall(x)
-            end
-        })
-
-        Fk.togAlwaysSecret=hk:Toggle({
-            ["Title"]=P.Farm.SecretTitle,
-            ["Desc"]=P.Farm.SecretDesc,
-            ["Icon"]="solar:star-bold",
-            ["Value"]=h.alwaysCollectSecretPlus,
-            ["Callback"]=function(enabled)
-                h.alwaysCollectSecretPlus=enabled
-                pcall(x)
-            end
-        })
-
-        Fk.secFlight=hk:Section({["Title"]="Farm Settings"})
-
-        Fk.sliderSpeed=hk:Slider({
-            ["Title"]=P.Farm.SpeedTitle,
-            ["Desc"]=P.Farm.SpeedDesc,
-            ["Step"]=25,
-            ["Value"]={
-                ["Min"]=100,
-                ["Max"]=1000,
-                ["Default"]=h.glideSpeed or 600
-            },
-            ["Callback"]=function(value)
-                value=math.clamp(math.floor(tonumber(value) or 600),100,1000)
-                h.glideSpeed=value
-                Y(value)
-            end
-        })
-
-        -- Force the Auto Farm tab to be selected and visible after building its controls.
-        pcall(function(...)
-            if p.TabModule and p.TabModule.SelectTab then
-                p.TabModule:SelectTab(hk)
-            end
-            if p.UIElements and p.UIElements.Main then
-                p.UIElements.Main.Visible = true
-            end
+    local Fluent=nil
+    pcall(function()
+        Fluent=(loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua")))()
+    end)
+    if not Fluent then
+        pcall(function()
+            Fluent=(loadstring(game:HttpGetAsync("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua")))()
         end)
-
-        yM=function() end
-        yM()
-task.spawn (function(...)
-            while h.alive do
-                pcall(function(...)
-                    local r=y4()
-                    local y=(Xk== "TH" )
-                    local u=Wk(Xk)
-                    if B then
-                        local e=Color3.fromRGB ( 0 , 255 , 160 )
-                        if h.securingEgg or h.teleporting then
-                            e=Color3.fromRGB ( 249 , 115 , 22 )
-                        elseif h.isReturning or h.glidingToTarget then
-                            e=Color3.fromRGB ( 59 , 130 , 246 )
-                        elseif h.delivering then
-                            e=Color3.fromRGB ( 16 , 185 , 129 )
-                        end
-                        pcall(function(...)
-                            if B.SetTitle then
-                                B:SetTitle(((y and "สถานะ: " or "Status: " ))..u)
-                            end
-                            if B.SetColor then
-                                B:SetColor(e)
-                            end
-                        end
-                        )
-                    end
-                    if Fk.paraLiveDash and Fk.paraLiveDash.SetDesc then
-                        local e=y and "หยุดพัก" or "Idle"
-                        if Y4== "TWEEN" then
-                            e=y and "ขโมยไข่ (บินเร็ว)" or "Auto Steal (Tween)"
-                        elseif Y4== "WARP" then
-                            e=y and "ขโมยไข่ (วาร์ป)" or "Auto Steal (Teleport)"
-                        end
-                        local j=y and "สถานะ: %s\nโหมดฟาร์ม: %s\nจำนวนไข่ในตัว: %d ฟอง\nความเร็วบิน: %d Studs/s" or "Status: %s\nFarm Mode: %s\nCarried Eggs: %d\nFlight Speed: %d Studs/s"
-                        local k=string.format (j,u,e,r,h.glideSpeed or 600 )pcall(function(...) Fk.paraLiveDash :SetDesc(k)
-                        end
-                        )
-                    end
-                end
-                )task.wait ( 0.5 )
-            end
-        end
-        )e(R)
+    end
+    if not Fluent then
+        H("[!] Fluent UI could not be loaded")
         return
     end
-    if h.gui then
-        pcall(function(...) h.gui :Destroy()
-        end
-        )h.gui =nil
-    end
-    local k=Instance.new ( "ScreenGui" )k.Name = "DesyncSniperUI_v41_5" k.ResetOnSpawn = false k.DisplayOrder = 99999 k.ZIndexBehavior =Enum.ZIndexBehavior.Sibling k.AutoLocalize = false
-    local a=o:FindFirstChild( "PlayerGui" )or game:GetService( "CoreGui" )pcall(function(...)
-        if syn and syn.protect_gui then
-            syn.protect_gui (k)k.Parent =game:GetService( "CoreGui" )
+
+    local camera=workspace.CurrentCamera
+    local viewport=camera and camera.ViewportSize or Vector2.new(1280,720)
+    local mobile=w.TouchEnabled and not w.KeyboardEnabled
+    local width=mobile and math.clamp(viewport.X*0.86,470,620) or 620
+    local height=mobile and math.clamp(viewport.Y*0.78,420,620) or 520
+
+    local Window=Fluent:CreateWindow({
+        Title="Dice Hub",
+        SubTitle="Auto Farm",
+        TabWidth=150,
+        Size=UDim2.fromOffset(width,height),
+        Acrylic=true,
+        Theme="Dark",
+        MinimizeKey=Enum.KeyCode.RightShift
+    })
+
+    pcall(function() Window.MinimizeKey=Enum.KeyCode.RightShift end)
+    pcall(function() Window:SelectTab(1) end)
+    pcall(function() Fluent:Notify({Title="Dice Hub",Content="Auto Farm loaded",Duration=3}) end)
+
+    h.gui=Window
+    p=Window
+    Window.IgnoreAlerts=true
+
+    -- Compatibility objects used by the backend/status updater.
+    local statusObj={}
+    function statusObj:SetTitle(...) end
+    function statusObj:SetColor(...) end
+    B=statusObj
+
+    Fk=Fk or {}
+    Fk.paraLiveDash={}
+    function Fk.paraLiveDash:SetDesc(...) end
+
+    local FarmTab=Window:CreateTab({Title="Auto Farm",Icon="box"})
+    hk=FarmTab
+    Fk.secModes=FarmTab:CreateSection("Auto Steal")
+
+    local updating=false
+    local teleportToggle=FarmTab:CreateToggle("AutoStealTeleport",{
+        Title="Auto Steal (Teleport)",
+        Description="Teleport to steal eggs continuously",
+        Default=h.autoFarmLoop==true
+    })
+    teleportToggle:OnChanged(function(value)
+        if updating then return end
+        if value then
+            T4("WARP")
         else
-            k.Parent =a
-        end
-    end
-    )
-    if not k.Parent then
-        k.Parent =a
-    end
-    h.gui =k
-    local V=Color3.fromRGB ( 15 , 17 , 24 )
-    local H=Color3.fromRGB ( 20 , 24 , 34 )
-    local t=Color3.fromRGB ( 22 , 26 , 38 )
-    local s=Color3.fromRGB ( 28 , 33 , 48 )
-    local p=Color3.fromRGB ( 45 , 52 , 75 )
-    local B=Color3.fromRGB ( 240 , 243 , 255 )
-    local J=Color3.fromRGB ( 140 , 148 , 170 )
-    local K=Color3.fromRGB ( 38 , 43 , 60 )
-    local c=Color3.fromRGB ( 150 , 158 , 180 )
-    local v=Color3.fromRGB ( 255 , 255 , 255 )
-    local i= 475
-    local R= 46
-    local g= false
-    local Q=Instance.new ( "Frame" )Q.Name = "MainFrame" Q.Size =UDim2.new ( 0 , 330 , 0 ,i)Q.Position =UDim2.new ( 0.04 , 0 , 0.22 , 0 )Q.BackgroundColor3 =V Q.BorderSizePixel = 0 Q.Active = true Q.Draggable = true Q.ClipsDescendants = true Q.Parent =k
-    local P=Instance.new ( "UICorner" )P.CornerRadius =UDim.new ( 0 , 12 )P.Parent =Q
-    local N=Instance.new ( "UIStroke" )N.Color =p N.Thickness = 1.4 N.Parent =Q
-    local U=Instance.new ( "Frame" )U.Name = "Header" U.Size =UDim2.new ( 1 , 0 , 0 , 46 )U.BackgroundColor3 =H U.BorderSizePixel = 0 U.Parent =Q;
-    (Instance.new ( "UICorner" ,U)).CornerRadius =UDim.new ( 0 , 12 )
-    local l=Instance.new ( "TextLabel" )l.Size =UDim2.new ( 1 , -90 , 0 , 22 )l.Position =UDim2.new ( 0 , 12 , 0 , 6 )l.BackgroundTransparency = 1 l.Text = "Dice Hub (Fallback)" l.TextColor3 =B l.TextSize = 14 l.Font =Enum.Font.GothamBold l.TextXAlignment =Enum.TextXAlignment.Left l.AutoLocalize = false l.Parent =U
-    local D=Instance.new ( "TextLabel" )D.Size =UDim2.new ( 1 , -90 , 0 , 14 )D.Position =UDim2.new ( 0 , 12 , 0 , 26 )D.BackgroundTransparency = 1 D.Text = "Steal an Egg v42.64" D.TextColor3 =Color3.fromRGB ( 0 , 255 , 160 )D.TextSize = 11 D.Font =Enum.Font.Gotham D.TextXAlignment =Enum.TextXAlignment.Left D.AutoLocalize = false D.Parent =U
-    local C=Instance.new ( "TextButton" )C.Size =UDim2.new ( 0 , 28 , 0 , 28 )C.Position =UDim2.new ( 1 , -68 , 0 , 9 )C.BackgroundColor3 =t C.Text = "-" C.TextColor3 =B C.TextSize = 16 C.Font =Enum.Font.GothamBold C.AutoButtonColor = false C.Parent =U;
-    (Instance.new ( "UICorner" ,C)).CornerRadius =UDim.new ( 0 , 6 )
-    local q=Instance.new ( "TextButton" )q.Size =UDim2.new ( 0 , 28 , 0 , 28 )q.Position =UDim2.new ( 1 , -36 , 0 , 9 )q.BackgroundColor3 =Color3.fromRGB ( 239 , 68 , 68 )q.Text = "X" q.TextColor3 =B q.TextSize = 12 q.Font =Enum.Font.GothamBold q.AutoButtonColor = false q.Parent =U;
-    (Instance.new ( "UICorner" ,q)).CornerRadius =UDim.new ( 0 , 6 )
-    local n=Instance.new ( "ScrollingFrame" )n.Size =UDim2.new ( 1 , 0 , 1 , -46 )n.Position =UDim2.new ( 0 , 0 , 0 , 46 )n.BackgroundTransparency = 1 n.BorderSizePixel = 0 n.ScrollBarThickness = 3 n.ScrollBarImageColor3 =p n.CanvasSize =UDim2.new ( 0 , 0 , 0 , 0 )n.AutomaticCanvasSize =Enum.AutomaticSize.Y n.Parent =Q
-    local I=Instance.new ( "UIListLayout" )I.SortOrder =Enum.SortOrder.LayoutOrder I.Padding =UDim.new ( 0 , 7 )I.Parent =n
-    local L=Instance.new ( "UIPadding" )L.PaddingTop =UDim.new ( 0 , 8 )L.PaddingBottom =UDim.new ( 0 , 12 )L.PaddingLeft =UDim.new ( 0 , 10 )L.PaddingRight =UDim.new ( 0 , 10 )L.Parent =n C.MouseButton1Click :Connect(function(...) g=not g C.Text =g and "+" or "-" ;
-        (u:Create(Q,TweenInfo.new ( 0.25 ,Enum.EasingStyle.Quart ,Enum.EasingDirection.Out ),{[ "Size" ]=g and UDim2.new ( 0 , 330 , 0 ,R)or UDim2.new ( 0 , 330 , 0 ,i)})):Play()
-    end
-    )q.MouseButton1Click :Connect(function(...) aM()
-    end
-    )
-    local function E(e,r,...)
-        local y=Instance.new ( "Frame" )y.Size =UDim2.new ( 1 , 0 , 0 , 20 )y.BackgroundTransparency = 1 y.LayoutOrder =r y.Parent =n
-        local u=Instance.new ( "TextLabel" )u.Size =UDim2.new ( 1 , 0 , 1 , 0 )u.BackgroundTransparency = 1 u.Text =e u.TextColor3 =Color3.fromRGB ( 0 , 185 , 255 )u.TextSize = 11 u.Font =Enum.Font.GothamBold u.TextXAlignment =Enum.TextXAlignment.Left u.AutoLocalize = false u.Parent =y
-        return y
-    end
-    local function b(e,r,y,w,j,k,...)
-        local a=Instance.new ( "Frame" )a.Size =UDim2.new ( 1 , 0 , 0 , 52 )a.BackgroundColor3 =t a.LayoutOrder =j a.Parent =n;
-        (Instance.new ( "UICorner" ,a)).CornerRadius =UDim.new ( 0 , 8 )
-        local o=Instance.new ( "TextLabel" )o.Size =UDim2.new ( 1 , -60 , 0 , 18 )o.Position =UDim2.new ( 0 , 10 , 0 , 8 )o.BackgroundTransparency = 1 o.Text =e o.TextColor3 =w or B o.TextSize = 13 o.Font =Enum.Font.GothamBold o.TextXAlignment =Enum.TextXAlignment.Left o.AutoLocalize = false o.Parent =a
-        local V=Instance.new ( "TextLabel" )V.Size =UDim2.new ( 1 , -60 , 0 , 16 )V.Position =UDim2.new ( 0 , 10 , 0 , 26 )V.BackgroundTransparency = 1 V.Text =r V.TextColor3 =J V.TextSize = 10 V.Font =Enum.Font.Gotham V.TextXAlignment =Enum.TextXAlignment.Left V.AutoLocalize = false V.Parent =a
-        local H=Instance.new ( "TextButton" )H.Size =UDim2.new ( 0 , 44 , 0 , 24 )H.Position =UDim2.new ( 1 , -54 , 0.5 , -12 )H.BackgroundColor3 =y and w or K H.Text = "" H.AutoButtonColor = false H.Parent =a;
-        (Instance.new ( "UICorner" ,H)).CornerRadius =UDim.new ( 1 , 0 )
-        local s=Instance.new ( "Frame" )s.Size =UDim2.new ( 0 , 18 , 0 , 18 )s.Position =y and UDim2.new ( 1 , -21 , 0.5 , -9 )or UDim2.new ( 0 , 3 , 0.5 , -9 )s.BackgroundColor3 =y and v or c s.Parent =H;
-        (Instance.new ( "UICorner" ,s)).CornerRadius =UDim.new ( 1 , 0 )
-        local p=y
-        local function i(e,...) p=e
-            local r=TweenInfo.new ( 0.18 ,Enum.EasingStyle.Quart ,Enum.EasingDirection.Out );
-            (u:Create(H,r,{[ "BackgroundColor3" ]=p and w or K})):Play();
-            (u:Create(s,r,{[ "Position" ]=p and UDim2.new ( 1 , -21 , 0.5 , -9 )or UDim2.new ( 0 , 3 , 0.5 , -9 );
-            [ "BackgroundColor3" ]=p and v or c})):Play()
-        end
-        H.MouseButton1Click :Connect(function(...)
-            local e=not p i(e)k(e)
-        end
-        )
-        return i
-    end
-    local function A(e,r,y,u,w,...)
-        local j=Instance.new ( "Frame" )j.Size =UDim2.new ( 1 , 0 , 0 , 48 )j.BackgroundColor3 =t j.LayoutOrder =u j.Parent =n;
-        (Instance.new ( "UICorner" ,j)).CornerRadius =UDim.new ( 0 , 8 )
-        local k=Instance.new ( "TextLabel" )k.Size =UDim2.new ( 1 , -95 , 0 , 18 )k.Position =UDim2.new ( 0 , 10 , 0 , 6 )k.BackgroundTransparency = 1 k.Text =e k.TextColor3 =y or B k.TextSize = 13 k.Font =Enum.Font.GothamBold k.TextXAlignment =Enum.TextXAlignment.Left k.AutoLocalize = false k.Parent =j
-        local a=Instance.new ( "TextLabel" )a.Size =UDim2.new ( 1 , -95 , 0 , 16 )a.Position =UDim2.new ( 0 , 10 , 0 , 24 )a.BackgroundTransparency = 1 a.Text =r a.TextColor3 =J a.TextSize = 10 a.Font =Enum.Font.Gotham a.TextXAlignment =Enum.TextXAlignment.Left a.AutoLocalize = false a.Parent =j
-        local o=Instance.new ( "TextButton" )o.Size =UDim2.new ( 0 , 78 , 0 , 30 )o.Position =UDim2.new ( 1 , -86 , 0.5 , -15 )o.BackgroundColor3 =y o.Text = "RUN" o.TextColor3 =Color3.fromRGB ( 255 , 255 , 255 )o.TextSize = 11 o.Font =Enum.Font.GothamBold o.AutoButtonColor = false o.Parent =j;
-        (Instance.new ( "UICorner" ,o)).CornerRadius =UDim.new ( 0 , 6 )o.MouseButton1Click :Connect(w)
-    end
-    E( "AUTO STEAL MODES" , 10 )
-    local S= false
-    local Z=nil
-    local z=nil Z=b( "Auto Steal (Tween)" , "Fly to steal eggs & auto stash into backpack" ,h.pureTweenFarm ,Color3.fromRGB ( 0 , 195 , 255 ), 11 ,function(e,...)
-        if S then
-            return
-        end
-        if e then
-            T4( "TWEEN" )
-        else
-            if Y4== "TWEEN" or h.pureTweenFarm then
-                T4( "NONE" )
+            if Y4=="WARP" or h.autoFarmLoop then
+                T4("NONE")
             end
         end
+    end)
+
+    W4=function(value)
+        pcall(function()
+            updating=true
+            teleportToggle:SetValue(value==true)
+            updating=false
+        end)
     end
-    )z=b( "Auto Steal (Teleport)" , "Teleport to steal eggs in continuous loop" ,h.autoFarmLoop ,Color3.fromRGB ( 168 , 85 , 247 ), 12 ,function(e,...)
-        if S then
-            return
-        end
-        if e then
-            T4( "WARP" )
-        else
-            if Y4== "WARP" or h.autoFarmLoop then
-                T4( "NONE" )
-            end
+    x4=function() end
+
+    Fk.secEggZones=FarmTab:CreateSection("Target Zones")
+    local zoneValues={
+        "Light Dark","Titan Temple","Cherry Blossom","Cosmic",
+        "Prehistoric","Abyss Ocean","Volcano","Snow",
+        "Jungle","Desert","Lake","Forest"
+    }
+    local selectedZones={}
+    for _,zone in ipairs(zoneValues) do
+        if h.selectedZones and h.selectedZones[zone]==true then
+            table.insert(selectedZones,zone)
         end
     end
-    )x4=function(e,...) pcall(function(...)
-            if Z then
-                S= true Z(e)S= false
-            end
-        end
-        )
-    end
-    W4=function(e,...) pcall(function(...)
-            if z then
-                S= true z(e)S= false
-            end
-        end
-        )
-    end
-    A( "Single Steal (Teleport)" , "Teleport to steal 1 target egg and return" ,Color3.fromRGB ( 59 , 130 , 246 ), 13 ,function(...) task.spawn (function(...)
-            if Y4~= "NONE" then
-                T4( "NONE" )task.wait ( 0.2 )
-            end
-            local e=N4()
-            if e then
-                local y=l4(e,nil)
-                if y then
-                    pcall(u4)
-                    if h.autoGlide then
-                        Q4(h.glideSpeed )u4()
-                    end
+
+    local zoneDropdown=FarmTab:CreateDropdown("SelectedZones",{
+        Title="Selected Zones",
+        Description="Choose which zones can be farmed",
+        Values=zoneValues,
+        Multi=true,
+        Default=selectedZones
+    })
+    zoneDropdown:OnChanged(function(value)
+        local selected={}
+        if type(value)=="table" then
+            for key,item in pairs(value) do
+                if type(key)=="string" and item==true then
+                    selected[key]=true
+                elseif type(item)=="string" then
+                    selected[item]=true
                 end
             end
+        elseif type(value)=="string" then
+            selected[value]=true
         end
-        )
-    end
-    )E( "PLACE EGG" , 20 )A( "Place Egg" , "Tween home, place all carried eggs & hatch" ,Color3.fromRGB ( 16 , 215 , 130 ), 21 ,function(...) task.spawn (function(...) h.statusText = "[Manual] Depositing eggs..." g4(h.glideSpeed )v4()u4()h.isReturning = false h.delivering = false
-        end
-        )
-    end
-    )b( "Auto Place (Every 5)" , "Return home every 5 steals, place & wait 5s" ,h.autoPlaceEvery5 ,Color3.fromRGB ( 14 , 165 , 233 ), 22 ,function(e,...) h.autoPlaceEvery5 =e
-        if not e then
-            h.batchStealCount = 0
-        end
-    end
-    )b( "Auto Hatch" , "Automatically hatch ready eggs continuously" ,h.autoHatch ,Color3.fromRGB ( 16 , 185 , 129 ), 22 ,function(e,...) h.autoHatch =e
-    end
-    )b( "Auto Return" , "Automatically return to safe area after stealing" ,h.autoGlide ,Color3.fromRGB ( 245 , 158 , 11 ), 23 ,function(e,...) h.autoGlide =e
-    end
-    )b( "Auto Treadmill" , "Run on base treadmill when no target eggs are spawned" ,h.autoTreadmill ,Color3.fromRGB ( 168 , 85 , 247 ), 24 ,function(e,...) h.autoTreadmill =e x()n4()
-        if not e and((h.onTreadmill or L4()))then
-            M4()
-        end
-    end
-    )E( "CHARACTER & SAFETY" , 30 )b( "Godmode" , "Invincible against attacks and guards" , false ,Color3.fromRGB ( 244 , 63 , 94 ), 31 ,function(e,...)
-        if e then
-            enableDesyncGodmode()
-        else
-            disableDesyncGodmode()
-        end
-    end
-    )A( "Get Out Treadmill" , "Instantly escape from treadmill or gear" ,Color3.fromRGB ( 249 , 115 , 22 ), 32 ,function(...) pcall(M4)pcall(C4)pcall(D4)
-    end
-    )E( "CONTROLS & SETTINGS" , 40 )
-    local F=Instance.new ( "Frame" )F.Size =UDim2.new ( 1 , 0 , 0 , 48 )F.BackgroundColor3 =t F.LayoutOrder = 41 F.Parent =n;
-    (Instance.new ( "UICorner" ,F)).CornerRadius =UDim.new ( 0 , 8 )
-    local O=Instance.new ( "TextLabel" )O.Size =UDim2.new ( 1 , -130 , 0 , 18 )O.Position =UDim2.new ( 0 , 10 , 0 , 6 )O.BackgroundTransparency = 1 O.Text = "Flight Speed" O.TextColor3 =B O.TextSize = 13 O.Font =Enum.Font.GothamBold O.TextXAlignment =Enum.TextXAlignment.Left O.AutoLocalize = false O.Parent =F
-    local T=Instance.new ( "TextLabel" )T.Size =UDim2.new ( 0 , 70 , 0 , 24 )T.Position =UDim2.new ( 1 , -80 , 0.5 , -12 )T.BackgroundColor3 =V T.Text =string.format ( "%d Studs/s" ,h.glideSpeed or 600 )T.TextColor3 =Color3.fromRGB ( 0 , 255 , 160 )T.TextSize = 11 T.Font =Enum.Font.GothamBold T.AutoLocalize = false T.Parent =F;
-    (Instance.new ( "UICorner" ,T)).CornerRadius =UDim.new ( 0 , 6 )
-    local W=Instance.new ( "TextButton" )W.Size =UDim2.new ( 0 , 24 , 0 , 24 )W.Position =UDim2.new ( 1 , -110 , 0.5 , -12 )W.BackgroundColor3 =s W.Text = "-" W.TextColor3 =B W.TextSize = 14 W.Font =Enum.Font.GothamBold W.Parent =F;
-    (Instance.new ( "UICorner" ,W)).CornerRadius =UDim.new ( 0 , 6 )
-    local m=Instance.new ( "TextButton" )m.Size =UDim2.new ( 0 , 24 , 0 , 24 )m.Position =UDim2.new ( 1 , -138 , 0.5 , -12 )m.BackgroundColor3 =s m.Text = "+" m.TextColor3 =B m.TextSize = 14 m.Font =Enum.Font.GothamBold m.Parent =F;
-    (Instance.new ( "UICorner" ,m)).CornerRadius =UDim.new ( 0 , 6 )W.MouseButton1Click :Connect(function(...) h.glideSpeed =math.max ( 100 ,((h.glideSpeed or 600 ))- 25 )T.Text =string.format ( "%d Studs/s" ,h.glideSpeed )Y(h.glideSpeed )
-    end
-    )m.MouseButton1Click :Connect(function(...) h.glideSpeed =math.min ( 1000 ,((h.glideSpeed or 600 ))+ 25 )T.Text =string.format ( "%d Studs/s" ,h.glideSpeed )Y(h.glideSpeed )
-    end
-    )A( "Reset Character State" , "Clear velocity, cancel push & unfreeze" ,Color3.fromRGB ( 99 , 102 , 241 ), 42 ,function(...) pcall(D4)pcall(u4)
-    end
-    )A( "Unload Script" , "Destroy UI and stop all background loops" ,Color3.fromRGB ( 153 , 27 , 27 ), 43 ,function(...) aM()
-    end
-    )E( "EGG SELECT (ZONES & RARITIES)" , 45 )
-    local e4=Instance.new ( "TextButton" )e4.Size =UDim2.new ( 1 , 0 , 0 , 48 )e4.BackgroundColor3 =t e4.LayoutOrder = 46 e4.Text = "" e4.AutoButtonColor = false e4.Parent =n;
-    (Instance.new ( "UICorner" ,e4)).CornerRadius =UDim.new ( 0 , 8 )
-    local function r4(...)
-        local e= 0
-        for y,u in ipairs(M)do
-            if h.selectedZones and h.selectedZones [u]then
-                e=e+ 1
+        for _,zone in ipairs(zoneValues) do
+            if selected[zone] then
+                selected[zone]=true
             end
         end
-        return e
-    end
-    local w4=Instance.new ( "TextLabel" )w4.Size =UDim2.new ( 1 , -50 , 0 , 18 )w4.Position =UDim2.new ( 0 , 10 , 0 , 6 )w4.BackgroundTransparency = 1 w4.Text =string.format ( "📍 Target Zones (%d/12 Active)" ,r4())w4.TextColor3 =Color3.fromRGB ( 0 , 220 , 255 )w4.TextSize = 13 w4.Font =Enum.Font.GothamBold w4.TextXAlignment =Enum.TextXAlignment.Left w4.AutoLocalize = false w4.Parent =e4
-    local j4=Instance.new ( "TextLabel" )j4.Size =UDim2.new ( 1 , -50 , 0 , 16 )j4.Position =UDim2.new ( 0 , 10 , 0 , 26 )j4.BackgroundTransparency = 1 j4.Text = "Click to expand / collapse zone selection" j4.TextColor3 =J j4.TextSize = 10 j4.Font =Enum.Font.Gotham j4.TextXAlignment =Enum.TextXAlignment.Left j4.AutoLocalize = false j4.Parent =e4
-    local k4=Instance.new ( "TextLabel" )k4.Size =UDim2.new ( 0 , 30 , 0 , 30 )k4.Position =UDim2.new ( 1 , -38 , 0.5 , -15 )k4.BackgroundTransparency = 1 k4.Text = "▼" k4.TextColor3 =J k4.TextSize = 12 k4.Font =Enum.Font.GothamBold k4.Parent =e4
-    local a4=Instance.new ( "Frame" )a4.Size =UDim2.new ( 1 , 0 , 0 , 0 )a4.BackgroundColor3 =Color3.fromRGB ( 18 , 20 , 28 )a4.LayoutOrder = 47 a4.Visible = false a4.ClipsDescendants = true a4.Parent =n;
-    (Instance.new ( "UICorner" ,a4)).CornerRadius =UDim.new ( 0 , 8 )
-    local o4=Instance.new ( "UIGridLayout" )o4.CellSize =UDim2.new ( 0.48 , 0 , 0 , 32 )o4.CellPadding =UDim2.new ( 0.04 , 0 , 0 , 6 )o4.SortOrder =Enum.SortOrder.LayoutOrder o4.Parent =a4;
-    (Instance.new ( "UIPadding" ,a4)).PaddingTop =UDim.new ( 0 , 8 )a4.UIPadding.PaddingBottom =UDim.new ( 0 , 8 )a4.UIPadding.PaddingLeft =UDim.new ( 0 , 8 )a4.UIPadding.PaddingRight =UDim.new ( 0 , 8 )
-    local V4={}
-    for e,r in ipairs(M)do
-        local y=Instance.new ( "TextButton" )y.LayoutOrder =e y.Font =Enum.Font.GothamBold y.TextSize = 11 y.AutoButtonColor = false y.AutoLocalize = false ;
-        (Instance.new ( "UICorner" ,y)).CornerRadius =UDim.new ( 0 , 6 )
-        local function u(...)
-            local e=h.selectedZones and h.selectedZones [r]== true
-            if e then
-                y.BackgroundColor3 =d[r]or Color3.fromRGB ( 59 , 130 , 246 )y.TextColor3 =Color3.new ( 1 , 1 , 1 )y.Text = "✓ " ..r
-            else
-                y.BackgroundColor3 =Color3.fromRGB ( 28 , 32 , 44 )y.TextColor3 =Color3.fromRGB ( 140 , 150 , 170 )y.Text =r
-            end
+        h.selectedZones=selected
+        pcall(x)
+    end)
+
+    Fk.secEggRarity=FarmTab:CreateSection("Target Rarities")
+    local rarityValues={
+        "Divine","Eternal","Secret","Cosmic","Mythic",
+        "Legendary","Epic","Rare","Uncommon","Common"
+    }
+    local selectedRarities={}
+    for _,rarity in ipairs(rarityValues) do
+        if h.selectedRarities and h.selectedRarities[rarity]==true then
+            table.insert(selectedRarities,rarity)
         end
-        u()y.MouseButton1Click :Connect(function(...)
-            if not h.selectedZones then
-                h.selectedZones ={}
+    end
+
+    local rarityDropdown=FarmTab:CreateDropdown("SelectedRarities",{
+        Title="Selected Rarities",
+        Description="Choose which egg rarities can be farmed",
+        Values=rarityValues,
+        Multi=true,
+        Default=selectedRarities
+    })
+    rarityDropdown:OnChanged(function(value)
+        local selected={}
+        if type(value)=="table" then
+            for key,item in pairs(value) do
+                if type(key)=="string" and item==true then
+                    selected[key]=true
+                elseif type(item)=="string" then
+                    selected[item]=true
+                end
             end
-            h.selectedZones [r]=not((h.selectedZones [r]== true ))u()x()w4.Text =string.format ( "📍 Target Zones (%d/12 Active)" ,r4())
+        elseif type(value)=="string" then
+            selected[value]=true
         end
-        )y.Parent =a4 V4[r]=y
-    end
-    local H4= false e4.MouseButton1Click :Connect(function(...) H4=not H4 a4.Visible =H4 a4.Size =H4 and UDim2.new ( 1 , 0 , 0 , 240 )or UDim2.new ( 1 , 0 , 0 , 0 )k4.Text =H4 and "▲" or "▼"
-    end
-    )
-    local function t4(...)
-        local e= 0
-        for y,u in ipairs(X)do
-            if h.selectedRarities and h.selectedRarities [u]then
-                e=e+ 1
-            end
+        h.selectedRarities=selected
+        pcall(x)
+    end)
+
+    local secretToggle=FarmTab:CreateToggle("AlwaysSecretPlus",{
+        Title="Always Steal Secret+",
+        Description="Always target Secret, Eternal and Divine eggs",
+        Default=h.alwaysCollectSecretPlus~=false
+    })
+    secretToggle:OnChanged(function(value)
+        h.alwaysCollectSecretPlus=value==true
+        pcall(x)
+    end)
+
+    Fk.secFlight=FarmTab:CreateSection("Farm Settings")
+    local speedSlider=FarmTab:CreateSlider("FlightSpeed",{
+        Title="Flight Speed",
+        Description="Control the flight speed used by the Auto Farm",
+        Min=100,
+        Max=1000,
+        Default=math.clamp(tonumber(h.glideSpeed) or 600,100,1000),
+        Rounding=0,
+        Callback=function(value)
+            value=math.clamp(math.floor(tonumber(value) or 600),100,1000)
+            h.glideSpeed=value
+            Y(value)
         end
-        return e
-    end
-    local s4=Instance.new ( "TextButton" )s4.Size =UDim2.new ( 1 , 0 , 0 , 48 )s4.BackgroundColor3 =t s4.LayoutOrder = 48 s4.Text = "" s4.AutoButtonColor = false s4.Parent =n;
-    (Instance.new ( "UICorner" ,s4)).CornerRadius =UDim.new ( 0 , 8 )
-    local p4=Instance.new ( "TextLabel" )p4.Size =UDim2.new ( 1 , -50 , 0 , 18 )p4.Position =UDim2.new ( 0 , 10 , 0 , 6 )p4.BackgroundTransparency = 1 p4.Text =string.format ( "🥚 Target Rarities (%d/%d Active)" ,t4(),#X)p4.TextColor3 =Color3.fromRGB ( 255 , 180 , 0 )p4.TextSize = 13 p4.Font =Enum.Font.GothamBold p4.TextXAlignment =Enum.TextXAlignment.Left p4.AutoLocalize = false p4.Parent =s4
-    local B4=Instance.new ( "TextLabel" )B4.Size =UDim2.new ( 1 , -50 , 0 , 16 )B4.Position =UDim2.new ( 0 , 10 , 0 , 26 )B4.BackgroundTransparency = 1 B4.Text = "Click to expand / collapse rarity selection" B4.TextColor3 =J B4.TextSize = 10 B4.Font =Enum.Font.Gotham B4.TextXAlignment =Enum.TextXAlignment.Left B4.AutoLocalize = false B4.Parent =s4
-    local J4=Instance.new ( "TextLabel" )J4.Size =UDim2.new ( 0 , 30 , 0 , 30 )J4.Position =UDim2.new ( 1 , -38 , 0.5 , -15 )J4.BackgroundTransparency = 1 J4.Text = "▼" J4.TextColor3 =J J4.TextSize = 12 J4.Font =Enum.Font.GothamBold J4.Parent =s4
-    local K4=Instance.new ( "Frame" )K4.Size =UDim2.new ( 1 , 0 , 0 , 0 )K4.BackgroundColor3 =Color3.fromRGB ( 18 , 20 , 28 )K4.LayoutOrder = 49 K4.Visible = false K4.ClipsDescendants = true K4.Parent =n;
-    (Instance.new ( "UICorner" ,K4)).CornerRadius =UDim.new ( 0 , 8 )
-    local c4=Instance.new ( "UIGridLayout" )c4.CellSize =UDim2.new ( 0.48 , 0 , 0 , 32 )c4.CellPadding =UDim2.new ( 0.04 , 0 , 0 , 6 )c4.SortOrder =Enum.SortOrder.LayoutOrder c4.Parent =K4;
-    (Instance.new ( "UIPadding" ,K4)).PaddingTop =UDim.new ( 0 , 8 )K4.UIPadding.PaddingBottom =UDim.new ( 0 , 8 )K4.UIPadding.PaddingLeft =UDim.new ( 0 , 8 )K4.UIPadding.PaddingRight =UDim.new ( 0 , 8 )
-    for e,r in ipairs(X)do
-        local y=Instance.new ( "TextButton" )y.LayoutOrder =e y.Font =Enum.Font.GothamBold y.TextSize = 11 y.AutoButtonColor = false y.AutoLocalize = false ;
-        (Instance.new ( "UICorner" ,y)).CornerRadius =UDim.new ( 0 , 6 )
-        local function u(...)
-            local e=h.selectedRarities and h.selectedRarities [r]== true
-            if e then
-                y.BackgroundColor3 =G[r]or Color3.fromRGB ( 249 , 115 , 22 )y.TextColor3 =Color3.new ( 1 , 1 , 1 )y.Text = "✓ " ..r
-            else
-                y.BackgroundColor3 =Color3.fromRGB ( 28 , 32 , 44 )y.TextColor3 =Color3.fromRGB ( 140 , 150 , 170 )y.Text =r
-            end
-        end
-        u()y.MouseButton1Click :Connect(function(...)
-            if not h.selectedRarities then
-                h.selectedRarities ={}
-            end
-            h.selectedRarities [r]=not((h.selectedRarities [r]== true ))u()x()p4.Text =string.format ( "🥚 Target Rarities (%d/%d Active)" ,t4(),#X)
-        end
-        )y.Parent =K4
-    end
-    local i4= false s4.MouseButton1Click :Connect(function(...) i4=not i4 K4.Visible =i4 K4.Size =i4 and UDim2.new ( 1 , 0 , 0 , 160 )or UDim2.new ( 1 , 0 , 0 , 0 )J4.Text =i4 and "▲" or "▼"
-    end
-    )e(function(...) Q.Visible = true
-    end
-    )
+    })
+    Fk.sliderSpeed=speedSlider
+
+    pcall(function() Window:SelectTab(FarmTab) end)
+    yM=function() end
+    yM()
 end
-H( "[+] Initializing Dice Hub x WindUI v42.64 (Steal an Egg Edition)..." )oM()task.spawn (function(...) task.wait ( 0.5 )A4()b4( true )C4()
+H( "[+] Initializing Dice Hub x Fluent UI (Steal an Egg Edition)..." )oM()task.spawn (function(...) task.wait ( 0.5 )A4()b4( true )C4()
     if o.Character then
         z4(o.Character )
     end
