@@ -1,10 +1,10 @@
 --[[
-    MINI HUB - RETURN AUTO STEAL + ESP EGGS
+    MINI HUB - RETURN AUTO STEAL + PET ESP
     Movimento baseado no metodo completo do Open source completo.txt.
 
     Botoes:
     1. RETURN AUTO STEAL
-    2. ESP EGGS
+    2. PET ESP
 
     O retorno usa:
     - prepareStealHumanoid
@@ -185,6 +185,10 @@ local GetRespawnPointCFrame =
 
 local GetPlotData =
     pickFn(PlotState, "ResolvePlot", "GetPlotData")
+
+local GetRuntimeSnapshot =
+    pickFn(findModule("RuntimeSnapshot"), "ReadSnapshot", "GetRuntimeSnapshot")
+    or findModule("RuntimeSnapshot")
 
 -- ============================================================
 -- GAME HELPERS
@@ -1025,10 +1029,10 @@ local function returnAutoSteal()
 end
 
 -- ============================================================
--- ESP EGGS
+-- PET ESP
 -- ============================================================
 
-local espFolder = Workspace:FindFirstChild("MiniReturnEggESP")
+local espFolder = Workspace:FindFirstChild("MiniReturnPetESP")
 
 if espFolder then
     pcall(function()
@@ -1037,7 +1041,7 @@ if espFolder then
 end
 
 espFolder = Instance.new("Folder")
-espFolder.Name = "MiniReturnEggESP"
+espFolder.Name = "MiniReturnPetESP"
 espFolder.Parent = Workspace
 
 local rarityColors = {
@@ -1051,19 +1055,31 @@ local rarityColors = {
 }
 
 local function getEspColor(rarity)
-    return rarityColors[rarity]
-        or Color3.fromRGB(190, 200, 215)
+    return rarityColors[rarity] or Color3.fromRGB(190, 200, 215)
+end
+
+local function formatNumber(n)
+    n = tonumber(n) or 0
+    local suffix = {"", "K", "M", "B", "T", "Qa", "Qi"}
+    local i = 1
+    while n >= 1000 and i < #suffix do
+        n = n / 1000
+        i = i + 1
+    end
+    if i == 1 then
+        return string.format("%d", n)
+    end
+    return string.format("%.2f%s", n, suffix[i])
 end
 
 local function ensureEspEntry(id, color)
     local entry = espEntries[id]
-
     if entry then
         return entry
     end
 
     local anchor = Instance.new("Part")
-    anchor.Name = "EggESPAnchor"
+    anchor.Name = "PetESPAnchor"
     anchor.Anchored = true
     anchor.CanCollide = false
     anchor.CanQuery = false
@@ -1073,58 +1089,57 @@ local function ensureEspEntry(id, color)
     anchor.Parent = espFolder
 
     local billboard = Instance.new("BillboardGui")
-    billboard.Name = "EggESPLabel"
+    billboard.Name = "PetESPInfo"
     billboard.AlwaysOnTop = true
-    billboard.Size = UDim2.fromOffset(240, 42)
-    billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+    billboard.Size = UDim2.fromOffset(250, 58)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
     billboard.Adornee = anchor
     billboard.Parent = anchor
 
     local label = Instance.new("TextLabel")
-    label.Name = "Text"
+    label.Name = "Info"
     label.BackgroundTransparency = 1
     label.Size = UDim2.fromScale(1, 1)
     label.Font = Enum.Font.GothamBold
-    label.TextSize = 13
+    label.TextSize = 12
+    label.TextWrapped = true
     label.TextStrokeTransparency = 0.35
     label.TextColor3 = color
     label.Parent = billboard
+
+    local icon = Instance.new("ImageLabel")
+    icon.Name = "PetImage"
+    icon.BackgroundTransparency = 1
+    icon.Size = UDim2.fromOffset(0, 0)
+    icon.Visible = false
+    icon.Parent = billboard
 
     entry = {
         anchor = anchor,
         billboard = billboard,
         label = label,
+        icon = icon,
         highlight = nil,
     }
 
     espEntries[id] = entry
-
     return entry
 end
 
 local function releaseEsp(id)
     local entry = espEntries[id]
-
     if not entry then
         return
     end
 
     if entry.highlight then
-        pcall(function()
-            entry.highlight:Destroy()
-        end)
+        pcall(function() entry.highlight:Destroy() end)
     end
-
     if entry.billboard then
-        pcall(function()
-            entry.billboard:Destroy()
-        end)
+        pcall(function() entry.billboard:Destroy() end)
     end
-
     if entry.anchor then
-        pcall(function()
-            entry.anchor:Destroy()
-        end)
+        pcall(function() entry.anchor:Destroy() end)
     end
 
     espEntries[id] = nil
@@ -1134,11 +1149,33 @@ local function clearEsp()
     for id in pairs(espEntries) do
         releaseEsp(id)
     end
-
     table.clear(espMarks)
 end
 
-local function updateEggESP()
+local function collectPetRecords()
+    local runtimeRecords = {}
+    local snapshot = nil
+
+    pcall(function()
+        if GetRuntimeSnapshot then
+            snapshot = GetRuntimeSnapshot()
+        end
+    end)
+
+    if typeof(snapshot) == "table" then
+        for _, group in pairs(snapshot) do
+            if typeof(group) == "table" and typeof(group.Records) == "table" then
+                for uid, record in pairs(group.Records) do
+                    runtimeRecords[uid] = record
+                end
+            end
+        end
+    end
+
+    return runtimeRecords
+end
+
+local function updatePetESP()
     if not espEnabled then
         clearEsp()
         return
@@ -1146,41 +1183,103 @@ local function updateEggESP()
 
     table.clear(espMarks)
 
-    for _, record in ipairs(getAreaEggs()) do
-        local cf = record.BottomCFrame or record.BoundsCFrame
+    local rendered = Workspace:FindFirstChild("ClientRenderedAssets")
+    if not rendered then
+        clearEsp()
+        return
+    end
 
-        if cf then
-            local state = record.State
+    local saveData = nil
+    pcall(function()
+        if Save and typeof(Save.Get) == "function" then
+            saveData = Save.Get()
+        end
+    end)
 
-            -- O botao mostra ovos do mundo, carregados e dropados,
-            -- igual ao coletor de ovos da open source.
-            if state == "Slot"
-                or state == "Dropped"
-                or state == "Carried" then
+    local inventory = saveData and saveData.Inventory or {}
+    local runtimeRecords = collectPetRecords()
+    local root = getRoot()
 
-                local id = "egg_" .. tostring(record.Uid)
-                local rarity = resolveRarity(record.AssetCategory)
-                local name = assetName(record.AssetCategory)
+    for _, petModel in ipairs(rendered:GetChildren()) do
+        local uid = petModel:GetAttribute("UID")
 
-                local text = string.format(
-                    "%s [%s]",
-                    name,
-                    tostring(rarity or "?")
-                )
+        if typeof(uid) == "string" then
+            local ok, pivot = pcall(function()
+                return petModel:GetPivot()
+            end)
 
-                if state == "Dropped" or state == "Carried" then
-                    text = text .. "\n" .. tostring(state)
+            if ok and pivot then
+                local position = pivot.Position
+                local inRange = root and (root.Position - position).Magnitude <= 2000
+
+                if inRange then
+                    local inventoryRecord = inventory[uid]
+                    local runtimeRecord = runtimeRecords[uid]
+
+                    local category
+                    if typeof(inventoryRecord) == "table" then
+                        category = inventoryRecord.Category
+                    end
+
+                    local moneyPerSecond
+                    local mutation
+                    local scale
+
+                    if typeof(runtimeRecord) == "table" then
+                        if not category and typeof(runtimeRecord.ItemData) == "table" then
+                            category = runtimeRecord.ItemData.Category
+                        end
+
+                        moneyPerSecond = tonumber(runtimeRecord.MoneyPerSecond)
+                        mutation = runtimeRecord.Mutation
+                        scale = runtimeRecord.Scale
+                    end
+
+                    local rarity = resolveRarity(category)
+                    local petName = assetName(category)
+
+                    local lines = {
+                        string.format("%s [%s]", petName, tostring(rarity or "?"))
+                    }
+
+                    if mutation and tostring(mutation) ~= "" then
+                        table.insert(lines, "Mutation: " .. tostring(mutation))
+                    end
+
+                    if scale then
+                        table.insert(lines, "Scale: " .. tostring(scale))
+                    end
+
+                    if moneyPerSecond then
+                        table.insert(lines, formatNumber(moneyPerSecond) .. "/s")
+                    end
+
+                    local id = "pet_" .. petModel.Name
+                    local color = getEspColor(rarity)
+                    local entry = ensureEspEntry(id, color)
+
+                    entry.anchor.CFrame = CFrame.new(position)
+                    entry.label.Text = table.concat(lines, "\n")
+                    entry.label.TextColor3 = color
+
+                    -- Usa o proprio pet renderizado como o "desenho/fotinha"
+                    -- do ESP, exatamente no estilo do Pet ESP da open source.
+                    if not entry.highlight then
+                        local highlight = Instance.new("Highlight")
+                        highlight.Name = "PetESPHighlight"
+                        highlight.FillTransparency = 0.6
+                        highlight.OutlineTransparency = 0
+                        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                        highlight.Parent = espFolder
+                        entry.highlight = highlight
+                    end
+
+                    entry.highlight.Adornee = petModel
+                    entry.highlight.FillColor = color
+                    entry.highlight.OutlineColor = color
+
+                    espMarks[id] = true
                 end
-
-                local color = getEspColor(rarity)
-
-                local entry = ensureEspEntry(id, color)
-
-                entry.anchor.CFrame = CFrame.new(cf.Position)
-                entry.label.Text = text
-                entry.label.TextColor3 = color
-
-                espMarks[id] = true
             end
         end
     end
@@ -1297,8 +1396,8 @@ local returnButton = createButton(
 )
 
 local espButton = createButton(
-    "EspEggs",
-    "ESP EGGS: OFF",
+    "EspPets",
+    "PET ESP: OFF",
     104
 )
 
@@ -1324,10 +1423,10 @@ espButton.MouseButton1Click:Connect(function()
     espEnabled = not espEnabled
 
     if espEnabled then
-        espButton.Text = "ESP EGGS: ON"
+        espButton.Text = "PET ESP: ON"
         espButton.BackgroundColor3 = Color3.fromRGB(45, 70, 48)
     else
-        espButton.Text = "ESP EGGS: OFF"
+        espButton.Text = "PET ESP: OFF"
         espButton.BackgroundColor3 = Color3.fromRGB(31, 31, 40)
         clearEsp()
     end
@@ -1335,35 +1434,46 @@ end)
 
 -- Drag support
 do
+    local UserInputService = game:GetService("UserInputService")
     local dragging = false
+    local dragInput
     local dragStart
     local startPosition
 
-    title.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-            or input.UserInputType == Enum.UserInputType.Touch then
-
-            dragging = true
-            dragStart = input.Position
-            startPosition = main.Position
+    local function beginDrag(input)
+        if input.UserInputType ~= Enum.UserInputType.MouseButton1
+            and input.UserInputType ~= Enum.UserInputType.Touch then
+            return
         end
-    end)
 
-    title.InputEnded:Connect(function(input)
+        dragging = true
+        dragStart = input.Position
+        startPosition = main.Position
+        dragInput = input
+    end
+
+    local function endDrag(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
             or input.UserInputType == Enum.UserInputType.Touch then
-
             dragging = false
+            dragInput = nil
         end
-    end)
+    end
 
-    track(RunService.RenderStepped:Connect(function()
+    title.InputBegan:Connect(beginDrag)
+    title.InputEnded:Connect(endDrag)
+
+    track(UserInputService.InputChanged:Connect(function(input)
         if not dragging then
             return
         end
 
-        local input = game:GetService("UserInputService"):GetMouseLocation()
-        local delta = input - dragStart
+        if input.UserInputType ~= Enum.UserInputType.MouseMovement
+            and input.UserInputType ~= Enum.UserInputType.Touch then
+            return
+        end
+
+        local delta = input.Position - dragStart
 
         main.Position = UDim2.new(
             startPosition.X.Scale,
@@ -1374,14 +1484,14 @@ do
     end))
 end
 
--- ESP update loop
+-- PET ESP update loop
 track(RunService.Heartbeat:Connect(function()
     if not alive then
         return
     end
 
     if espEnabled then
-        updateEggESP()
+        updatePetESP()
     end
 end))
 
